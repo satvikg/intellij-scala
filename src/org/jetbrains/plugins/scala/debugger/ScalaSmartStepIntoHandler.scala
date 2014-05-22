@@ -2,7 +2,8 @@ package org.jetbrains.plugins.scala.debugger
 
 import com.intellij.debugger.actions.{JvmSmartStepIntoHandler, SmartStepTarget, MethodSmartStepTarget}
 import com.intellij.debugger.SourcePosition
-import java.util.{List => JList}
+import java.util.{List => JList, Collections}
+import com.intellij.util.Range
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -27,8 +28,32 @@ import scala.collection.JavaConverters._
 
 class ScalaSmartStepIntoHandler extends JvmSmartStepIntoHandler {
   override def findSmartStepTargets(position: SourcePosition): JList[SmartStepTarget] = {
-    val targets: List[SmartStepTarget] = findReferencedMethodsScala(position).map(new MethodSmartStepTarget(_))
-    targets.asJava
+    val line: Int = position.getLine
+    if (line < 0) {
+      return Collections.emptyList[SmartStepTarget]
+    }
+    val file: PsiFile = position.getFile
+    val vFile: VirtualFile = file.getVirtualFile
+    if (vFile == null) {
+      return Collections.emptyList[SmartStepTarget]
+    }
+    val doc: Document = FileDocumentManager.getInstance.getDocument(vFile)
+    if (doc == null) return Collections.emptyList[SmartStepTarget]
+    if (line >= doc.getLineCount) {
+      return Collections.emptyList[SmartStepTarget]
+    }
+    val startOffset: Int = doc.getLineStartOffset(line)
+    val offset: Int = CharArrayUtil.shiftForward(doc.getCharsSequence, startOffset, " \t")
+    val element: PsiElement = file.findElementAt(offset)
+
+    if (element != null) {
+      val lines: Range[Integer] = new Range[Integer](doc.getLineNumber(element.getTextOffset), doc.getLineNumber(element.getTextOffset + element.getTextLength))
+      val targets: List[SmartStepTarget] = findReferencedMethodsScala(position).map { method =>
+        new MethodSmartStepTarget(method, null, null, true, lines)
+      }
+      return targets.asJava
+    }
+    Collections.emptyList[SmartStepTarget]
   }
 
   def isAvailable(position: SourcePosition): Boolean = {

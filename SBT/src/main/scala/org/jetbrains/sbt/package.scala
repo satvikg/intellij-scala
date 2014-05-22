@@ -6,7 +6,7 @@ import reflect.ClassTag
 import _root_.java.io._
 import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
 import _root_.java.lang.{Boolean => JavaBoolean}
-import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.{VirtualFile, VfsUtil}
 import com.intellij.openapi.util.io.FileUtil
 
 /**
@@ -41,11 +41,35 @@ package object sbt {
     def canonicalFile: File = new File(canonicalPath)
 
     def url: String = VfsUtil.getUrlForLibraryRoot(file)
+    
+    def isAncestorOf(aFile: File): Boolean = FileUtil.isAncestor(file, aFile, true)
+
+    def isUnder(root: File): Boolean = FileUtil.isAncestor(root, file, true)
+
+    def isOutsideOf(root: File): Boolean = !FileUtil.isAncestor(root, file, false)
+
+    def write(lines: String*) {
+      writeLinesTo(file, lines: _*)
+    }
+
+    def copyTo(destination: File) {
+      copy(file, destination)
+    }
   }
 
   private object RichFile {
     def parent(file: File, level: Int): File =
       if (level > 0) parent(file.getParentFile, level - 1) else file
+  }
+
+  implicit class RichVirtualFile(entry: VirtualFile) {
+    def containsDirectory(name: String): Boolean = find(name).exists(_.isDirectory)
+
+    def containsFile(name: String): Boolean = find(name).exists(_.isFile)
+
+    def find(name: String): Option[VirtualFile] = Option(entry.findChild(name))
+    
+    def isFile: Boolean = !entry.isDirectory
   }
 
   implicit class RichString(path: String) {
@@ -79,10 +103,6 @@ package object sbt {
     }
   }
 
-  type Closeable = {
-    def close()
-  }
-
   def using[A <: Closeable, B](resource: A)(block: A => B): B = {
     try {
       block(resource)
@@ -111,33 +131,12 @@ package object sbt {
     }
   }
 
-  def usingTempFile[T](prefix: String, suffix: String)(block: File => T): T = {
-    val file = FileUtil.createTempFile(prefix, suffix, true)
+  def usingTempFile[T](prefix: String, suffix: Option[String] = None)(block: File => T): T = {
+    val file = FileUtil.createTempFile(prefix, suffix.orNull, true)
     try {
       block(file)
     } finally {
       file.delete()
-    }
-  }
-
-  def usingTempDirectory[T](prefix: String, suffix: String)(block: File => T): T = {
-    val dir = FileUtil.createTempDirectory(prefix, suffix, true)
-    try {
-      block(dir)
-    } finally {
-      dir.delete()
-    }
-  }
-
-  def usingSafeCopyOf[T](file: File)(block: File => T): T = {
-    if (file.getAbsolutePath.contains(" ")) {
-      val (prefix, suffix) = parse(file.getName)
-      usingTempFile(prefix, suffix) { tempFile =>
-        copy(file, tempFile)
-        block(tempFile)
-      }
-    } else {
-      block(file)
     }
   }
 

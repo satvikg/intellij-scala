@@ -13,10 +13,15 @@ import com.intellij.ide.wizard.Step
  * @author Pavel Fatin
  */
 class SbtProjectOpenProcessor(builder: SbtProjectImportBuilder) extends ProjectOpenProcessorBase[SbtProjectImportBuilder](builder) {
-  def getSupportedExtensions = Array(Sbt.BuildFile)
+  // Actual detection is done via the canOpenProject method (to "open" projects without build.sbt file).
+  // However, these "extensions" are used inside ProjectOpenProcessorBase.doOpenProject to determine a project root directory.
+  // TODO Don't depend on file extensions in ProjectOpenProcessorBase.doOpenProject to discover a project root (IDEA)
+  def getSupportedExtensions = Array(Sbt.BuildFile, Sbt.ProjectDirectory)
+
+  override def canOpenProject(file: VirtualFile) = SbtProjectImportProvider.canImport(file)
 
   override def doQuickImport(file: VirtualFile, wizardContext: WizardContext) = {
-    val path = if (file.isDirectory) file.getPath else file.getParent.getPath
+    val path = SbtProjectImportProvider.projectRootOf(file).getPath
 
     val dialog = new AddModuleWizard(null, path, new SbtProjectImportProvider(getBuilder))
 
@@ -37,4 +42,8 @@ class SbtProjectOpenProcessor(builder: SbtProjectImportBuilder) extends ProjectO
 
     dialog.isOK
   }
+
+  // That's a hack to display SBT icon in the open project file chooser (this part of the IDEA API is broken)
+  // TODO Remove this when IDEA API will be properly re-designed
+  override def lookForProjectsInDirectory = false
 }

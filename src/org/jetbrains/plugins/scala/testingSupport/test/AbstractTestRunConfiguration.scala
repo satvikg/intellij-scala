@@ -4,6 +4,7 @@ package testingSupport.test
 import com.intellij.psi.search.GlobalSearchScope
 import org.jdom.Element
 import config.ScalaFacet
+import org.jetbrains.plugins.scala.util.ScalaUtil
 import collection.JavaConversions._
 import com.intellij.openapi.options.{SettingsEditorGroup, SettingsEditor}
 import com.intellij.diagnostic.logging.LogConfigurationPanel
@@ -38,7 +39,6 @@ import extensions.toPsiClassExt
 import lang.psi.api.ScPackage
 import collection.mutable.ArrayBuffer
 import testingSupport.test.AbstractTestRunConfiguration.PropertiesExtension
-import org.jetbrains.plugins.scala.compiler.rt.ClassRunner
 import lang.psi.api.toplevel.ScModifierListOwner
 import com.intellij.openapi.application.ApplicationManager
 import java.io.{IOException, FileOutputStream, PrintStream, File}
@@ -350,7 +350,7 @@ abstract class AbstractTestRunConfiguration(val project: Project,
 //        params.getVMParametersList.addParametersString("-Xnoagent -Djava.compiler=NONE -Xdebug " +
 //          "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5010")
 
-        val rtJarPath = PathUtil.getJarPathForClass(classOf[ClassRunner])
+        val rtJarPath = ScalaUtil.runnersPath()
         params.getClassPath.add(rtJarPath)
 
         searchTest match {

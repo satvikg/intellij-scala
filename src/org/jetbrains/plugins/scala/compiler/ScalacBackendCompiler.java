@@ -31,15 +31,14 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.encoding.EncodingManager;
 import com.intellij.util.ArrayFactory;
 import com.intellij.util.ArrayUtil;
-import com.intellij.util.PathUtil;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.plugins.scala.ScalaBundle;
 import org.jetbrains.plugins.scala.ScalaFileType;
-import org.jetbrains.plugins.scala.compiler.rt.ClassRunner;
 import org.jetbrains.plugins.scala.config.CompilerLibraryData;
 import org.jetbrains.plugins.scala.config.Libraries;
 import org.jetbrains.plugins.scala.config.ScalaFacet;
+import org.jetbrains.plugins.scala.util.ScalaUtil;
 import org.jetbrains.plugins.scala.util.ScalaUtils;
 import org.jetbrains.plugins.scala.util.macroDebug.ScalaMacroDebuggingUtil;
 import scala.Option;
@@ -352,12 +351,12 @@ public class ScalacBackendCompiler extends ExternalCompiler {
       }
     }
 
-    String rtJarPath = PathUtil.getJarPathForClass(ClassRunner.class);
+    String rtJarPath = ScalaUtil.runnersPath();
     classPathBuilder.append(rtJarPath).append(File.pathSeparator);
 
     commandLine.add(classPathBuilder.toString());
 
-    commandLine.add(ClassRunner.class.getName());
+    commandLine.add("ClassRunner");
 
     if (myFsc) {
       commandLine.add("scala.tools.nsc.CompileClient");

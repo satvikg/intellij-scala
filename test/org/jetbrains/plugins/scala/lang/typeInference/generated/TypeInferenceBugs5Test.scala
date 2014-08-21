@@ -37,6 +37,8 @@ class TypeInferenceBugs5Test extends TypeInferenceTestBase {
 
   def testImplicitTest() {doTest()}
 
+  def testImplicitVsNone(): Unit = { doTest() }
+
   def testInfixApply() {doTest()}
 
   def testJavaArrayType() {doTest()}
@@ -407,6 +409,8 @@ class TypeInferenceBugs5Test extends TypeInferenceTestBase {
 
   def testSCL5197() {doTest()}
 
+  def testSCL5222() {doTest()}
+
   def testSCL5247() {doTest()}
 
   def testSCL5303() {doTest()}
@@ -558,6 +562,12 @@ class TypeInferenceBugs5Test extends TypeInferenceTestBase {
   def testSCL7043() {doTest()}
 
   def testSCL7100() {doTest()}
+
+  def testSCL7174(): Unit = {
+    doTest()
+  }
+
+  def testSCL7192(): Unit = {doTest()}
 
   def testSCL7268() {doTest()}
 

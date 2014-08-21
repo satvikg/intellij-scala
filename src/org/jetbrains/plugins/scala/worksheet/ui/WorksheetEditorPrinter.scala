@@ -25,7 +25,7 @@ import com.intellij.ui.JBSplitter
 import org.jetbrains.plugins.scala
 import org.jetbrains.plugins.scala.lang.psi.api.ScalaFile
 import org.jetbrains.plugins.scala.settings.ScalaProjectSettings
-import org.jetbrains.plugins.scala.worksheet.processor.{WorksheetCompiler, WorksheetSourceProcessor}
+import org.jetbrains.plugins.scala.worksheet.processor.{FileAttributeUtilCache, WorksheetSourceProcessor}
 import org.jetbrains.plugins.scala.worksheet.runconfiguration.WorksheetViewerInfo
 
 import _root_.scala.collection.mutable.ArrayBuffer
@@ -238,7 +238,7 @@ class WorksheetEditorPrinter(originalEditor: Editor, worksheetViewer: Editor, fi
               override def run() {
                 foldingOffsetsCopy map {
                   case (start, end, limit, originalEnd) =>
-                    val offset = originalDocument getLineEndOffset originalEnd
+                    val offset = originalDocument getLineEndOffset Math.min(originalEnd, originalDocument.getLineCount)
                     val linesCount = viewerDocument.getLineNumber(end) - start - limit + 1
 
                     new WorksheetFoldRegionDelegate(
@@ -381,13 +381,13 @@ object WorksheetEditorPrinter {
   }
 
   def saveWorksheetEvaluation(file: ScalaFile, result: String) {
-    WorksheetCompiler.writeAttribute(LAST_WORKSHEET_RUN_RESULT, file, result)
+    FileAttributeUtilCache.writeAttribute(LAST_WORKSHEET_RUN_RESULT, file, result)
   }
   
-  def loadWorksheetEvaluation(file: ScalaFile): Option[String] = WorksheetCompiler.readAttribute(LAST_WORKSHEET_RUN_RESULT, file)
+  def loadWorksheetEvaluation(file: ScalaFile): Option[String] = FileAttributeUtilCache.readAttribute(LAST_WORKSHEET_RUN_RESULT, file)
   
   def deleteWorksheetEvaluation(file: ScalaFile) {
-    WorksheetCompiler.writeAttribute(LAST_WORKSHEET_RUN_RESULT, file, "")
+    FileAttributeUtilCache.writeAttribute(LAST_WORKSHEET_RUN_RESULT, file, "")
   }
 
   def newWorksheetUiFor(editor: Editor, virtualFile: VirtualFile) =

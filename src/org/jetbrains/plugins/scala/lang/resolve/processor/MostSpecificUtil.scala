@@ -108,7 +108,7 @@ case class MostSpecificUtil(elem: PsiElement, length: Int) {
                       new ScTypeVariable(tp.name))
                 }
                 val arguments = typeParams.toList.map(tp =>
-                  new ScExistentialArgument(tp.name, List.empty /* todo? */ , s.subst(tp.lowerType), s.subst(tp.upperType)))
+                  new ScExistentialArgument(tp.name, List.empty /* todo? */ , s.subst(tp.lowerType()), s.subst(tp.upperType())))
                 Left(params.map(p => p.copy(paramType = ScExistentialType(s.subst(p.paramType), arguments))))
               }
             case ScTypePolymorphicType(internal, typeParams) =>
@@ -126,7 +126,7 @@ case class MostSpecificUtil(elem: PsiElement, length: Int) {
                       new ScTypeVariable(tp.name))
                 }
                 val arguments = typeParams.toList.map(tp =>
-                  new ScExistentialArgument(tp.name, List.empty /* todo? */ , s.subst(tp.lowerType), s.subst(tp.upperType)))
+                  new ScExistentialArgument(tp.name, List.empty /* todo? */ , s.subst(tp.lowerType()), s.subst(tp.upperType())))
                 Right(ScExistentialType(s.subst(internal), arguments))
               }
             case _ => Right(tp)
@@ -166,6 +166,7 @@ case class MostSpecificUtil(elem: PsiElement, length: Int) {
               Conformance.conformsInner(type2, type1, immutable.Set.empty, new ScUndefinedSubstitutor()) //todo: with implcits?
             //todo this is possible, when one variant is empty with implicit parameters, and second without parameters.
             //in this case it's logical that method without parameters must win...
+            case (Left(_), Right(_)) if !r1.implicitCase => return false
             case _ => return true
           }
 
@@ -191,15 +192,15 @@ case class MostSpecificUtil(elem: PsiElement, length: Int) {
                   hasRecursiveTypeParameters
                 }
                 typeParams.foreach(tp => {
-                  if (tp.lowerType != types.Nothing) {
-                    val substedLower = uSubst.subst(tp.lowerType)
-                    if (!hasRecursiveTypeParameters(tp.lowerType)) {
+                  if (tp.lowerType() != types.Nothing) {
+                    val substedLower = uSubst.subst(tp.lowerType())
+                    if (!hasRecursiveTypeParameters(tp.lowerType())) {
                       u = u.addLower((tp.name, ScalaPsiUtil.getPsiElementId(tp.ptp)), substedLower, additional = true)
                     }
                   }
-                  if (tp.upperType != types.Any) {
-                    val substedUpper = uSubst.subst(tp.upperType)
-                    if (!hasRecursiveTypeParameters(tp.upperType)) {
+                  if (tp.upperType() != types.Any) {
+                    val substedUpper = uSubst.subst(tp.upperType())
+                    if (!hasRecursiveTypeParameters(tp.upperType())) {
                       u = u.addUpper((tp.name, ScalaPsiUtil.getPsiElementId(tp.ptp)), substedUpper, additional = true)
                     }
                   }

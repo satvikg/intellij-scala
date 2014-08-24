@@ -1264,6 +1264,8 @@ object ScalaPsiUtil {
       replaced.asInstanceOf[ScStableCodeReferenceElement].bindToElement(toBind)
     }
     if (element == null) return
+    if (element.isInstanceOf[ScImportStmt] || PsiTreeUtil.getParentOfType(element, classOf[ScImportStmt]) != null) return
+
     for (child <- element.getChildren) {
       child match {
         case stableRef: ScStableCodeReferenceElement =>
@@ -1278,6 +1280,10 @@ object ScalaPsiUtil {
                 case binding: ScBindingPattern => replaceStablePath(stableRef, binding.name, binding)
                 case _ => adjustTypes(child)
               }
+            case fun: ScFunction if fun.isConstructor =>
+              val clazz = fun.containingClass
+              if (hasStablePath(clazz)) replaceStablePath(stableRef, clazz.name, fun)
+              else adjustTypes(child)
             case _ => adjustTypes(child)
           }
         case tp: ScTypeProjection =>
@@ -1502,6 +1508,8 @@ object ScalaPsiUtil {
       def putAll(another: PsiSubstitutor): PsiSubstitutor = PsiSubstitutor.EMPTY
 
       def substituteWithBoundsPromotion(typeParameter: PsiTypeParameter): PsiType = substitute(typeParameter)
+
+      def ensureValid() {}
     }
 
     PseudoPsiSubstitutor(subst)

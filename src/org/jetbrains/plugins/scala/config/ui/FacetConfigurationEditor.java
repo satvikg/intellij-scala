@@ -89,6 +89,7 @@ public class FacetConfigurationEditor extends FacetEditorTab {
     myValidatorsManager = validatorsManager;
 
     myDebuggingInfoLevel.setModel(new DefaultComboBoxModel(DebuggingInfoLevel.values()));
+    myDebuggingInfoLevel.setRenderer(new DebuggingInfoRenderer());
     myLibraryRenderer = new LibraryRenderer(myCompilerLibrary);
     myCompilerLibrary.setRenderer(myLibraryRenderer);
     myCompileOrder.setModel(new DefaultComboBoxModel(CompileOrder.values()));
@@ -138,7 +139,8 @@ public class FacetConfigurationEditor extends FacetEditorTab {
       }
     });
 
-    final boolean externalCompiler = CompilerWorkspaceConfiguration.getInstance(myEditorContext.getProject()).USE_OUT_OF_PROCESS_BUILD;
+    // TODO in-process build is now depreacted
+    final boolean externalCompiler = true;
 
     myValidatorsManager.registerValidator(new FacetEditorValidator() {
       @Override
@@ -180,7 +182,8 @@ public class FacetConfigurationEditor extends FacetEditorTab {
   }
 
   private void updateCompilerSection() {
-    boolean externalCompiler = CompilerWorkspaceConfiguration.getInstance(myEditorContext.getProject()).USE_OUT_OF_PROCESS_BUILD;
+    // TODO in-process build is now depreacted
+    boolean externalCompiler = true;
     boolean b = externalCompiler || !myFSCRadioButton.isSelected();
     myCompilerLibraryLabel.setEnabled(b);
     myCompilerLibrary.setEnabled(b);

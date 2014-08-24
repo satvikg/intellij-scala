@@ -63,13 +63,7 @@ class ScalaExtractMethodHandler extends RefactoringActionHandler {
       return
     }
     if (!editor.getSelectionModel.hasSelection) return
-    ScalaRefactoringUtil.trimSpacesAndComments(editor, file, trimComments = false)
-    val startElement: PsiElement = file.findElementAt(editor.getSelectionModel.getSelectionStart)
-    val endElement: PsiElement = file.findElementAt(editor.getSelectionModel.getSelectionEnd - 1)
-    val elements = ScalaPsiUtil.getElementsRange(startElement, endElement) match {
-      case Seq(b: ScBlock) if !b.hasRBrace => b.children.toSeq
-      case elems => elems
-    }
+    val elements: Seq[PsiElement] = ScalaRefactoringUtil.selectedElements(editor, file, trimComments = false)
 
     if (showNotPossibleWarnings(elements, project, editor)) return
 
@@ -130,7 +124,10 @@ class ScalaExtractMethodHandler extends RefactoringActionHandler {
     val hasReturn: Option[ScType] = returnType
     val stopAtScope: PsiElement = findScopeBound(elements).getOrElse(file)
     val siblings: Array[PsiElement] = getSiblings(elements(0), stopAtScope)
-    if (siblings.length == 0) return
+    if (siblings.length == 0) {
+      showErrorMessage(ScalaBundle.message("extract.method.cannot.find.possible.scope"), project, editor)
+      return
+    }
     val array = elements.toArray
     if (ApplicationManager.getApplication.isUnitTestMode && siblings.length > 0) {
       invokeDialog(project, editor, array, hasReturn, lastReturn, siblings(0), siblings.length == 1,
@@ -194,7 +191,8 @@ class ScalaExtractMethodHandler extends RefactoringActionHandler {
             }
           case member: ScMember if !member.isLocal => member.containingClass.toOption
           case td: ScTypeDefinition => td.parent
-          case ScalaPsiUtil.inNameContext(varDef: ScVariableDefinition) if ScalaPsiUtil.isLValue(ref) => varDef.parent
+          case ScalaPsiUtil.inNameContext(varDef: ScVariableDefinition)
+            if ScalaPsiUtil.isLValue(ref) && !elements.exists(_.isAncestorOf(varDef)) => varDef.parent
           case member: PsiMember => member.containingClass.toOption
           case _ => return None
         }

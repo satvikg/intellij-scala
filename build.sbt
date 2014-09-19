@@ -72,13 +72,13 @@ unmanagedJars in Compile ++= (baseDirectory.value /  "SDK/scalap" * "*.jar").cla
 
 unmanagedJars in Compile ++= (baseDirectory.value /  "SDK/nailgun" * "*.jar").classpath
 
-lazy val compiler_settings = project.in(file( "compiler-settings")).settings(update <<= update dependsOn (downloadIdea in Compile))
+lazy val compiler_settings = project.in(file( "compiler-settings")).settings(compile <<= (compile in Compile)  dependsOn (downloadIdea in Compile))
 
 lazy val ScalaRunner = project.in(file( "ScalaRunner"))
 
 lazy val Runners = project.in(file( "Runners")).dependsOn(ScalaRunner)
 
-lazy val ScalaCommunity = project.in(file("")).dependsOn(compiler_settings, Runners).aggregate(jps_plugin).settings(update <<= update dependsOn (downloadIdea in Compile))
+lazy val ScalaCommunity = project.in(file("")).dependsOn(compiler_settings, Runners).aggregate(jps_plugin).settings(compile <<= (compile in Compile)  dependsOn (downloadIdea in Compile))
 
 lazy val intellij_hocon = Project( "intellij-hocon", file("intellij-hocon")).dependsOn(ScalaCommunity)
 

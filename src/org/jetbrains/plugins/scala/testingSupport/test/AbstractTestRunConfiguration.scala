@@ -22,10 +22,8 @@ import com.intellij.openapi.projectRoots.{JdkUtil, Sdk}
 import com.intellij.openapi.util.{Computable, Getter, JDOMExternalizer}
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.{JavaPsiFacade, PsiClass, PsiModifierList, PsiPackage}
-import com.intellij.util.PathUtil
 import org.jdom.Element
 import org.jetbrains.idea.maven.project.MavenProjectsManager
-import org.jetbrains.plugins.scala.compiler.rt.ClassRunner
 import org.jetbrains.plugins.scala.config.ScalaFacet
 import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.ScalaPsiUtil
@@ -36,6 +34,7 @@ import org.jetbrains.plugins.scala.lang.psi.impl.{ScPackageImpl, ScalaPsiManager
 import org.jetbrains.plugins.scala.testingSupport.ScalaTestingConfiguration
 import org.jetbrains.plugins.scala.testingSupport.test.AbstractTestRunConfiguration.PropertiesExtension
 import org.jetbrains.plugins.scala.testingSupport.test.TestRunConfigurationForm.{SearchForTest, TestKind}
+import org.jetbrains.plugins.scala.util.ScalaUtil
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConversions._

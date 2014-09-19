@@ -13,7 +13,7 @@ import com.intellij.psi.javadoc.{PsiDocComment, PsiDocTag}
 import com.intellij.psi.search.searches.SuperMethodsSearch
 import com.intellij.psi.util.{MethodSignatureBackedByPsiMethod, PsiTreeUtil}
 import org.apache.commons.lang.StringEscapeUtils.escapeHtml
-import org.jetbrains.plugins.scala.extensions.{toPsiClassExt, toPsiMemberExt, toPsiNamedElementExt}
+import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.completion.lookups.ScalaLookupItem
 import org.jetbrains.plugins.scala.lang.psi.api.ScalaFile
 import org.jetbrains.plugins.scala.lang.psi.api.base.patterns.ScBindingPattern
@@ -499,10 +499,10 @@ object ScalaDocumentationProvider {
 
     buffer.append(elem.getModifierList.accessModifier match {
       case Some(x: ScAccessModifier) => x.access match {
-        case x.Access.PRIVATE => "private" + accessQualifier(x)
-        case x.Access.PROTECTED => "protected" + accessQualifier(x)
-        case x.Access.THIS_PRIVATE => "private[this] "
-        case x.Access.THIS_PROTECTED => "protected[this] "
+        case ScAccessModifier.Type.PRIVATE => "private" + accessQualifier(x)
+        case ScAccessModifier.Type.PROTECTED => "protected" + accessQualifier(x)
+        case ScAccessModifier.Type.THIS_PRIVATE => "private[this] "
+        case ScAccessModifier.Type.THIS_PROTECTED => "protected[this] "
       }
       case None => ""
     })

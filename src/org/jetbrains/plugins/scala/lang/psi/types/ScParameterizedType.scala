@@ -11,7 +11,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi._
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.containers.ConcurrentWeakHashMap
-import org.jetbrains.plugins.scala.extensions.{toPsiClassExt, toPsiNamedElementExt}
+import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params.ScTypeParam
 import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScTypeAlias, ScTypeAliasDefinition}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScTypeParametersOwner
@@ -275,7 +275,9 @@ class ScParameterizedType private (val designator : ScType, val typeArgs : Seq[S
   }
 
   override def typeDepth: Int = {
-    designator.typeDepth.max(typeArgs.map(_.typeDepth).max + 1)
+    val depths = typeArgs.map(_.typeDepth)
+    if (depths.length == 0) designator.typeDepth //todo: shouldn't be possible
+    else designator.typeDepth.max(depths.max + 1)
   }
 
   override def isFinalType: Boolean = designator.isFinalType && !typeArgs.exists {
@@ -370,7 +372,7 @@ case class ScTypeParameterType(name: String, args: List[ScTypeParameterType],
   }
 
   override def equivInner(r: ScType, uSubst: ScUndefinedSubstitutor, falseUndef: Boolean): (Boolean, ScUndefinedSubstitutor) = {
-    var undefinedSubst = uSubst
+    val undefinedSubst = uSubst
     r match {
       case stp: ScTypeParameterType =>
         if (stp.param eq param) (true, undefinedSubst)

@@ -1,20 +1,22 @@
 package org.jetbrains.plugins.scala
 package config
 
-import java.util
 import java.io.File
-import collection.JavaConverters._
-import com.intellij.openapi.externalSystem.model.{ProjectKeys, DataNode}
-import com.intellij.openapi.externalSystem.service.project.{ProjectStructureHelper, PlatformFacade}
-import com.intellij.openapi.project.Project
+import java.util
+
 import com.intellij.facet.FacetManager
-import com.intellij.openapi.roots.impl.libraries.ProjectLibraryTable
+import com.intellij.openapi.externalSystem.model.{DataNode, ProjectKeys}
+import com.intellij.openapi.externalSystem.service.project.{PlatformFacade, ProjectStructureHelper}
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.OrderRootType
-import com.intellij.openapi.vfs.{VfsUtil, VfsUtilCore}
+import com.intellij.openapi.roots.impl.libraries.ProjectLibraryTable
 import com.intellij.openapi.roots.libraries.Library
+import com.intellij.openapi.vfs.{VfsUtil, VfsUtilCore}
 import org.jetbrains.plugins.gradle.model.data.ScalaModelData
 import org.jetbrains.plugins.scala.config.FileAPI._
-import ScalaGradleDataService._
+import org.jetbrains.plugins.scala.config.ScalaGradleDataService._
+
+import scala.collection.JavaConverters._
 
 /**
  * @author Pavel Fatin
@@ -25,7 +27,7 @@ class ScalaGradleDataService(platformFacade: PlatformFacade, helper: ProjectStru
   def doImportData(toImport: util.Collection[DataNode[ScalaModelData]], project: Project) {
     toImport.asScala.foreach { facetNode =>
       val module = {
-        val moduleName = facetNode.getData(ProjectKeys.MODULE).getName
+        val moduleName = facetNode.getData(ProjectKeys.MODULE).getExternalName
         helper.findIdeModule(moduleName, project)
       }
 
@@ -45,13 +47,13 @@ class ScalaGradleDataService(platformFacade: PlatformFacade, helper: ProjectStru
         facet.compilerParameters = compilerOptions.toArray
       }
 
-      ScalaFacet.findIn(module).map(setup(_)).getOrElse(
-        ScalaFacet.createIn(module)(setup(_)))
+      ScalaFacet.findIn(module).map(setup).getOrElse(
+        ScalaFacet.createIn(module)(setup))
     }
   }
 
   def doRemoveData(toRemove: util.Collection[_ <: ScalaFacet], project: Project) {
-    toRemove.asScala.foreach(delete(_))
+    toRemove.asScala.foreach(delete)
   }
 }
 

@@ -1,20 +1,20 @@
 package org.jetbrains.plugins.scala
 package base
 
-import com.intellij.openapi.command.CommandProcessor
-import com.intellij.openapi.actionSystem.IdeActions
-import com.intellij.codeInsight.folding.CodeFoldingManager
-import com.intellij.testFramework.fixtures.{CodeInsightTestFixture, LightCodeInsightFixtureTestCase}
-import com.intellij.codeInsight.generation.surroundWith.SurroundWithHandler
-import com.intellij.lang.surroundWith.Surrounder
-import org.jetbrains.plugins.scala.util.{TestUtils, ScalaToolsFactory}
-import com.intellij.codeInspection.LocalInspectionTool
-import collection.mutable.ListBuffer
-import com.intellij.codeInsight.intention.IntentionAction
-import scala.collection.mutable
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.codeInsight.folding.CodeFoldingManager
+import com.intellij.codeInsight.generation.surroundWith.SurroundWithHandler
+import com.intellij.codeInsight.intention.IntentionAction
+import com.intellij.codeInspection.LocalInspectionTool
+import com.intellij.lang.surroundWith.Surrounder
+import com.intellij.openapi.actionSystem.IdeActions
+import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.util.TextRange
-import com.intellij.openapi.projectRoots.JavaSdk
+import com.intellij.testFramework.fixtures.{CodeInsightTestFixture, LightCodeInsightFixtureTestCase}
+import org.jetbrains.plugins.scala.util.{ScalaToolsFactory, TestUtils}
+
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 /**
  * User: Dmitry Naydanov
@@ -29,9 +29,7 @@ abstract class ScalaLightCodeInsightFixtureTestAdapter extends LightCodeInsightF
   override protected def setUp() {
     super.setUp()
 
-    libLoader = new ScalaLibraryLoader(myFixture.getProject, myFixture.getModule, rootPath = null,
-      javaSdk = Some(JavaSdk.getInstance.createJdk("java sdk", TestUtils.getMockJdk, false)))
-
+    libLoader = ScalaLibraryLoader.withMockJdk(myFixture.getProject, myFixture.getModule, rootPath = null)
     libLoader.loadLibrary(TestUtils.DEFAULT_SCALA_SDK_VERSION)
   }
 

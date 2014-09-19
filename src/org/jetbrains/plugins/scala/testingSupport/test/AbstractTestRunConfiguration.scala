@@ -1,49 +1,46 @@
 package org.jetbrains.plugins.scala
 package testingSupport.test
 
-import com.intellij.psi.search.GlobalSearchScope
-import org.jdom.Element
-import config.ScalaFacet
-import org.jetbrains.plugins.scala.util.ScalaUtil
-import collection.JavaConversions._
-import com.intellij.openapi.options.{SettingsEditorGroup, SettingsEditor}
+import java.io.{File, FileOutputStream, IOException, PrintStream}
+
 import com.intellij.diagnostic.logging.LogConfigurationPanel
-import scala.beans.BeanProperty
-import com.intellij.openapi.module.Module
-
-import com.intellij.openapi.components.PathMacroManager
-import lang.psi.impl.ScalaPsiManager
-import lang.psi.api.toplevel.typedef.{ScClass, ScObject}
-import com.intellij.psi.{PsiModifierList, PsiPackage, JavaPsiFacade, PsiClass}
-import com.intellij.openapi.util.{Computable, JDOMExternalizer, Getter}
-
-import testingSupport.test.TestRunConfigurationForm.{SearchForTest, TestKind}
 import com.intellij.execution._
-import com.intellij.execution.runners.{ProgramRunner, ExecutionEnvironment}
-import com.intellij.execution.testframework.sm.runner.SMTRunnerConsoleProperties
-import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
-import com.intellij.execution.testframework.ui.BaseTestsOutputConsoleView
-import com.intellij.openapi.project.Project
-import com.intellij.util.PathUtil
 import com.intellij.execution.configurations._
-import java.lang.String
-import lang.psi.ScalaPsiUtil
-import com.intellij.openapi.extensions.Extensions
-import com.intellij.openapi.module.ModuleManager
-import com.intellij.openapi.projectRoots.{JdkUtil, Sdk}
-import testingSupport.ScalaTestingConfiguration
-import testframework.sm.runner.ui.SMTRunnerConsoleView
-import testframework.TestFrameworkRunningModel
-import lang.psi.impl.ScPackageImpl
-import extensions.toPsiClassExt
-import lang.psi.api.ScPackage
-import collection.mutable.ArrayBuffer
-import testingSupport.test.AbstractTestRunConfiguration.PropertiesExtension
-import lang.psi.api.toplevel.ScModifierListOwner
+import com.intellij.execution.runners.{ExecutionEnvironment, ProgramRunner}
+import com.intellij.execution.testframework.TestFrameworkRunningModel
+import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
+import com.intellij.execution.testframework.sm.runner.SMTRunnerConsoleProperties
+import com.intellij.execution.testframework.sm.runner.ui.SMTRunnerConsoleView
+import com.intellij.execution.testframework.ui.BaseTestsOutputConsoleView
 import com.intellij.openapi.application.ApplicationManager
-import java.io.{IOException, FileOutputStream, PrintStream, File}
+import com.intellij.openapi.components.PathMacroManager
+import com.intellij.openapi.extensions.Extensions
+import com.intellij.openapi.module.{Module, ModuleManager}
+import com.intellij.openapi.options.{SettingsEditor, SettingsEditorGroup}
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.projectRoots.{JdkUtil, Sdk}
+import com.intellij.openapi.util.{Computable, Getter, JDOMExternalizer}
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.{JavaPsiFacade, PsiClass, PsiModifierList, PsiPackage}
+import com.intellij.util.PathUtil
+import org.jdom.Element
 import org.jetbrains.idea.maven.project.MavenProjectsManager
+import org.jetbrains.plugins.scala.compiler.rt.ClassRunner
+import org.jetbrains.plugins.scala.config.ScalaFacet
+import org.jetbrains.plugins.scala.extensions._
+import org.jetbrains.plugins.scala.lang.psi.ScalaPsiUtil
+import org.jetbrains.plugins.scala.lang.psi.api.ScPackage
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.ScModifierListOwner
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.{ScClass, ScObject}
+import org.jetbrains.plugins.scala.lang.psi.impl.{ScPackageImpl, ScalaPsiManager}
+import org.jetbrains.plugins.scala.testingSupport.ScalaTestingConfiguration
+import org.jetbrains.plugins.scala.testingSupport.test.AbstractTestRunConfiguration.PropertiesExtension
+import org.jetbrains.plugins.scala.testingSupport.test.TestRunConfigurationForm.{SearchForTest, TestKind}
+
+import scala.beans.BeanProperty
+import scala.collection.JavaConversions._
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * @author Ksenia.Sautina
@@ -390,14 +387,15 @@ abstract class AbstractTestRunConfiguration(val project: Project,
               }
             }
 
-            val parms: Array[String] = ParametersList.parse(getTestArgs)
-            for (parm <- parms) {
-              printer.println(parm)
-            }
             printer.println("-showProgressMessages")
             printer.println(showProgressMessages.toString)
             printer.println("-C")
             printer.println(reporterClass)
+
+            val parms: Array[String] = ParametersList.parse(getTestArgs)
+            for (parm <- parms) {
+              printer.println(parm)
+            }
 
             printer.close()
             params.getProgramParametersList.add("@" + fileWithParams.getPath)
@@ -423,12 +421,13 @@ abstract class AbstractTestRunConfiguration(val project: Project,
             }
           }
 
-          params.getProgramParametersList.addParametersString(getTestArgs)
           params.getProgramParametersList.add("-showProgressMessages")
           params.getProgramParametersList.add(showProgressMessages.toString)
 
           params.getProgramParametersList.add("-C")
           params.getProgramParametersList.add(reporterClass)
+
+          params.getProgramParametersList.addParametersString(getTestArgs)
         }
 
         for (ext <- Extensions.getExtensions(RunConfigurationExtension.EP_NAME)) {
@@ -457,8 +456,8 @@ abstract class AbstractTestRunConfiguration(val project: Project,
         val res = new DefaultExecutionResult(consoleView, processHandler,
           createActions(consoleView, processHandler, executor): _*)
 
-        val rerunFailedTestsAction = new AbstractTestRerunFailedTestsAction(consoleView.getComponent)
-        rerunFailedTestsAction.init(consoleView.getProperties, getEnvironment)
+        val rerunFailedTestsAction = new AbstractTestRerunFailedTestsAction(consoleView)
+        rerunFailedTestsAction.init(consoleView.getProperties)
         rerunFailedTestsAction.setModelProvider(new Getter[TestFrameworkRunningModel] {
           def get: TestFrameworkRunningModel = {
             consoleView.asInstanceOf[SMTRunnerConsoleView].getResultsViewer

@@ -13,9 +13,8 @@ class ResolverIndexLocalIndexingTest extends ScalaFixtureTestCase {
 
   import _root_.junit.framework.Assert._
 
-  val testResolver = new SbtResolver("Test repo", "file:/%s/sbt/resolvers/testRepository" format rootPath)
-
   def testIndexUpdate() = {
+    val testResolver = new SbtResolver(SbtResolver.Kind.Maven, "Test repo", "file:/%s/sbt/resolvers/testRepository" format rootPath)
     val tmpPath = new File(myFixture.getTempDirPath)
     val storingManager = new SbtResolverIndexesManager(Some(tmpPath))
     val newIndex = storingManager.add(testResolver)

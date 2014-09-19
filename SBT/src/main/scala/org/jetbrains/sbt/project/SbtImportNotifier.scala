@@ -10,6 +10,7 @@ import com.intellij.openapi.components.{ProjectComponent, ServiceManager}
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.{DocumentAdapter, DocumentEvent}
 import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.externalSystem.importing.ImportSpecBuilder
 import com.intellij.openapi.externalSystem.model.DataNode
 import com.intellij.openapi.externalSystem.model.project.ProjectData
 import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode
@@ -77,7 +78,7 @@ class SbtImportNotifier(private val project: Project, private val fileEditorMana
     def refresh() {
       FileDocumentManager.getInstance.saveAllDocuments()
 
-      ExternalSystemUtil.refreshProjects(project, SbtProjectSystem.Id, false, ProgressExecutionMode.IN_BACKGROUND_ASYNC)
+      ExternalSystemUtil.refreshProjects(new ImportSpecBuilder(project, SbtProjectSystem.Id))
     }
 
     if (externalProjectPath == null) return
@@ -159,7 +160,8 @@ class SbtImportNotifier(private val project: Project, private val fileEditorMana
     build show notification
   }
   
-  private def getExternalProject(filePath: String) = myExternalProjectPathProvider.getAffectedExternalProjectPath(filePath, project)
+  private def getExternalProject(filePath: String) =
+    if (project.isDisposed) null else myExternalProjectPathProvider.getAffectedExternalProjectPath(filePath, project)
   
   private def builder(message: String) = NotificationUtil.builder(project, message).setGroup(SbtImportNotifier.groupName)
   

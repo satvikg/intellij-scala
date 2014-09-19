@@ -2,11 +2,14 @@ package org.jetbrains.sbt
 package project.structure
 
 import java.io._
-import scala.xml.{Elem, XML}
-import com.intellij.execution.process.OSProcessHandler
-import java.util.jar.{JarEntry, JarFile}
 import java.util.Properties
-import SbtRunner._
+import java.util.jar.{JarEntry, JarFile}
+
+import com.intellij.execution.process.OSProcessHandler
+import org.jetbrains.sbt.project.structure.SbtRunner._
+
+import scala.collection.mutable
+import scala.xml.{Elem, XML}
 
 /**
  * @author Pavel Fatin
@@ -52,6 +55,23 @@ class SbtRunner(vmOptions: Seq[String], customLauncher: Option[File], vmExecutab
   private def read1(directory: File, sbtVersion: String, options: String, listener: (String) => Unit) = {
     val pluginFile = LauncherDir / s"sbt-structure-$sbtVersion.jar"
 
+    val sbtOpts: Seq[String] = {
+      val sbtOptsFile = directory / ".sbtopts"
+      if (sbtOptsFile.exists && sbtOptsFile.isFile && sbtOptsFile.canRead) {
+        val opts = mutable.Buffer.empty[String]
+        using(new BufferedReader(new FileReader(sbtOptsFile))) { stream =>
+          while (stream.ready()) {
+            val opt = stream.readLine()
+            if (!opt.startsWith("#"))
+              opts += opt
+          }
+        }
+        opts.toSeq
+      } else {
+        Seq.empty
+      }
+    }
+
     usingTempFile("sbt-structure", Some(".xml")) { structureFile =>
       usingTempFile("sbt-commands", Some(".lst")) { commandsFile =>
 
@@ -65,7 +85,7 @@ class SbtRunner(vmOptions: Seq[String], customLauncher: Option[File], vmExecutab
 //                    "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005" +:
                   "-Djline.terminal=jline.UnsupportedTerminal" +:
                   "-Dsbt.log.noformat=true" +:
-                  vmOptions :+
+                  (vmOptions ++ sbtOpts) :+
                   "-jar" :+
                   path(SbtLauncher) :+
                   s"< ${path(commandsFile)}"

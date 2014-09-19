@@ -1,9 +1,7 @@
 package org.jetbrains.sbt
 package annotator
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.module.ModuleManager
-import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar
 import org.jetbrains.plugins.scala.annotator.Error
 import org.jetbrains.sbt.project.module.SbtModule
 import org.jetbrains.sbt.resolvers.{SbtResolver, SbtResolverIndexesManager}
@@ -15,7 +13,7 @@ import org.jetbrains.sbt.resolvers.{SbtResolver, SbtResolverIndexesManager}
  */
 class DependencyAnnotatorTest extends AnnotatorTestBase(classOf[SbtDependencyAnnotator]) {
 
-  val testResolver = new SbtResolver("Test repo", "file:/%s/sbt/resolvers/testRepository" format baseRootPath)
+  val testResolver = new SbtResolver(SbtResolver.Kind.Maven, "Test repo", "file:/%s/sbt/resolvers/testRepository" format baseRootPath)
 
   override def setUp() = {
     super.setUp()
@@ -28,16 +26,9 @@ class DependencyAnnotatorTest extends AnnotatorTestBase(classOf[SbtDependencyAnn
         SbtModule.setResolversTo(module, resolvers + testResolver)
       }
     }
-
-    val libraryTable = LibraryTablesRegistrar.getInstance().getLibraryTable(getProjectAdapter)
-    ApplicationManager.getApplication.runWriteAction(new Runnable {
-      def run() = libraryTable.createLibrary("SBT: org.jetbrains:some-cool-lib:0.0.1")
-    })
   }
 
   def testDoNotAnnotateIndexedDep =
-    doTest(Seq.empty)
-  def testDoNotAnnotateCachedDep =
     doTest(Seq.empty)
   def testAnnotateUnresolvedDep = {
     val msg = SbtBundle("sbt.annotation.unresolvedDependency")

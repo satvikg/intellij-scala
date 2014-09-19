@@ -6,7 +6,7 @@ package types
 import com.intellij.psi._
 import org.apache.commons.lang.StringEscapeUtils
 import org.jetbrains.plugins.scala.editor.documentationProvider.ScalaDocumentationProvider
-import org.jetbrains.plugins.scala.extensions.{toPsiClassExt, toPsiNamedElementExt}
+import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.api.base.ScFieldId
 import org.jetbrains.plugins.scala.lang.psi.api.base.patterns.{ScBindingPattern, ScReferencePattern}
 import org.jetbrains.plugins.scala.lang.psi.api.statements._
@@ -149,7 +149,8 @@ trait ScTypePresentation {
       val declsTexts = (signatureMap ++ typeMap).flatMap {
         case (s: Signature, rt: ScType) if s.namedElement.isInstanceOf[ScFunction] =>
           val fun = s.namedElement.asInstanceOf[ScFunction]
-          val funCopy = ScFunction.getCompoundCopy(s.substitutedTypes.map(_.toList), s.typeParams.toList, rt, fun)
+          val funCopy =
+            ScFunction.getCompoundCopy(s.substitutedTypes.map(_.map(_()).toList), s.typeParams.toList, rt, fun)
           val paramClauses = funCopy.paramClauses.clauses.map(_.parameters.map(param =>
             ScalaDocumentationProvider.parseParameter(param, typeText0)).mkString("(", ", ", ")")).mkString("")
           val retType = if (!compType.equiv(rt)) typeText0(rt) else "this.type"

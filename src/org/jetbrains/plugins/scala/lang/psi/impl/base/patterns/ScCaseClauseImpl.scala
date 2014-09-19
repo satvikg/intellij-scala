@@ -5,17 +5,13 @@ package impl
 package base
 package patterns
 
-import api.base.patterns._
-import psi.ScalaPsiElementImpl
 import com.intellij.lang.ASTNode
-
 import com.intellij.psi._
-import impl.source.JavaDummyHolder
-import scope.PsiScopeProcessor
-import api.ScalaElementVisitor
-import tree.TokenSet
-import parser.ScalaElementTypes
-import org.jetbrains.plugins.scala.lang.parser.parsing.patterns.InterpolationPattern
+import com.intellij.psi.scope.PsiScopeProcessor
+import com.intellij.psi.tree.TokenSet
+import org.jetbrains.plugins.scala.lang.parser.ScalaElementTypes
+import org.jetbrains.plugins.scala.lang.psi.api.ScalaElementVisitor
+import org.jetbrains.plugins.scala.lang.psi.api.base.patterns._
 
 /** 
 * @author Alexander Podkhalyuzin
@@ -38,7 +34,7 @@ class ScCaseClauseImpl(node: ASTNode) extends ScalaPsiElementImpl (node) with Sc
       place: PsiElement): Boolean = {
 
     pattern match {
-      case Some(p) => {
+      case Some(p) =>
         def process: Boolean = {
           val iterator = p.bindings.iterator
           while (iterator.hasNext) {
@@ -48,12 +44,14 @@ class ScCaseClauseImpl(node: ASTNode) extends ScalaPsiElementImpl (node) with Sc
           true
         }
         expr match {
-          case Some(e) if e.getStartOffsetInParent == lastParent.getStartOffsetInParent => if (!process) return false
+          case Some(e) if lastParent != null &&
+            e.getStartOffsetInParent == lastParent.getStartOffsetInParent => if (!process) return false
           case Some(e: ScInterpolationPattern) => if (!process) return false
           case _ =>
             guard match {
-              case Some(g) if g.getStartOffsetInParent == lastParent.getStartOffsetInParent => if (!process) return false
-              case _ => {
+              case Some(g) if lastParent != null &&
+                g.getStartOffsetInParent == lastParent.getStartOffsetInParent => if (!process) return false
+              case _ =>
                 //todo: is this good? Maybe parser => always expression.
                 val last = findLastChildByType(TokenSet.create(ScalaElementTypes.FUNCTION_DECLARATION,
                   ScalaElementTypes.FUNCTION_DEFINITION, ScalaElementTypes.PATTERN_DEFINITION,
@@ -61,13 +59,11 @@ class ScCaseClauseImpl(node: ASTNode) extends ScalaPsiElementImpl (node) with Sc
                   ScalaElementTypes.VARIABLE_DEFINITION, ScalaElementTypes.TYPE_DECLARATION,
                   ScalaElementTypes.TYPE_DECLARATION, ScalaElementTypes.CLASS_DEF,
                   ScalaElementTypes.TRAIT_DEF, ScalaElementTypes.OBJECT_DEF))
-                if (last != null && last.getStartOffsetInParent == lastParent.getStartOffsetInParent) {
+                if (last != null && lastParent != null && last.getStartOffsetInParent == lastParent.getStartOffsetInParent) {
                   if (!process) return false
                 }
-              }
             }
         }
-      }
       case _ =>
     }
     true

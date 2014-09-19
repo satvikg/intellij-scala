@@ -1,6 +1,5 @@
 package org.jetbrains.plugins.scala.config.ui;
 
-import com.intellij.compiler.CompilerWorkspaceConfiguration;
 import com.intellij.facet.ui.*;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
@@ -109,7 +108,7 @@ public class FacetConfigurationEditor extends FacetEditorTab {
     
     CompilerPluginsTableModel model = new CompilerPluginsTableModel();
     model.setItems(myPlugins);
-    tablePlugins.setModel(model);
+    tablePlugins.setModelAndUpdateColumns(model);
     
     addButton.setAction(myAddPluginAction);
     removeButton.setAction(myRemovePluginAction);

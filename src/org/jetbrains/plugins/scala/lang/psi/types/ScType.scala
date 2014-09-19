@@ -7,11 +7,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi._
 import org.jetbrains.plugins.scala.decompiler.DecompilerUtil
 import org.jetbrains.plugins.scala.lang.psi.api.statements._
-import org.jetbrains.plugins.scala.lang.psi.api.statements.params.{ScTypeParam, ScClassParameter, ScParameter}
+import org.jetbrains.plugins.scala.lang.psi.api.statements.params.{ScClassParameter, ScParameter, ScTypeParam}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.templates.ScTemplateBody
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.{ScClass, ScObject, ScTemplateDefinition}
-import org.jetbrains.plugins.scala.lang.psi.api.toplevel.{ScTypeParametersOwner, ScNamedElement, ScEarlyDefinitions, ScTypedDefinition}
-import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.{TypeParameter, NonValueType, ScMethodType}
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.{ScEarlyDefinitions, ScNamedElement, ScTypeParametersOwner, ScTypedDefinition}
+import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.{NonValueType, ScMethodType, TypeParameter}
 import org.jetbrains.plugins.scala.lang.psi.types.result.{Success, TypeResult, TypingContext}
 import org.jetbrains.plugins.scala.lang.refactoring.util.ScTypeUtil.AliasType
 
@@ -20,42 +20,6 @@ import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-/*
-Current types for pattern matching, this approach is bad for many reasons (one of them is bad performance).
-Better to use OOP approach instead.
-match {
- case Any =>
- case Null =>
- case AnyRef =>
- case Nothing =>
- case Singleton =>
- case AnyVal =>
- case Unit =>
- case Boolean =>
- case Char =>
- case Int =>
- case Long =>
- case Float =>
- case Double =>
- case Byte =>
- case Short =>
- case ScCompoundType(components, decls, typeDecls) =>
- case ScProjectionType(projected, element, subst) =>
- case JavaArrayType(arg) =>
- case ScParameterizedType(designator, typeArgs) =>
- case ScExistentialType(quantified, wildcards) =>
- case ScThisType(clazz) =>
- case ScDesignatorType(element) =>
- case ScTypeParameterType(name, args, lower, upper, param) =>
- case ScExistentialArgument(name, args, lowerBound, upperBound) =>
- case ScSkolemizedType(name, args, lower, upper) =>
- case ScTypeVariable(name) =>
- case ScUndefinedType(tpt) =>
- case ScMethodType(returnType, params, isImplicit) =>
- case ScAbstractType(tpt, lower, upper) =>
- case ScTypePolymorphicType(internalType, typeParameters) =>
-}
-*/
 trait ScType {
   private var aliasType: Option[AliasType] = null
 
@@ -250,7 +214,7 @@ object ScType extends ScTypePresentation with ScTypePsiTypeBridge {
     }
   }
 
-  def extractClassType(t: ScType, project: Option[Project] = None): Option[Pair[PsiClass, ScSubstitutor]] = t match {
+  def extractClassType(t: ScType, project: Option[Project] = None): Option[(PsiClass, ScSubstitutor)] = t match {
     case n: NonValueType => extractClassType(n.inferValueType)
     case ScThisType(clazz) => Some(clazz, new ScSubstitutor(t))
     case ScDesignatorType(clazz: PsiClass) => Some(clazz, ScSubstitutor.empty)
@@ -285,7 +249,7 @@ object ScType extends ScTypePresentation with ScTypePsiTypeBridge {
    * @param withoutAliases need to expand alias or not
    * @return element and substitutor
    */
-  def extractDesignated(t: ScType, withoutAliases: Boolean): Option[Pair[PsiNamedElement, ScSubstitutor]] = t match {
+  def extractDesignated(t: ScType, withoutAliases: Boolean): Option[(PsiNamedElement, ScSubstitutor)] = t match {
     case n: NonValueType => extractDesignated(n.inferValueType, withoutAliases)
     case ScDesignatorType(ta: ScTypeAliasDefinition) if withoutAliases =>
       val result = ta.aliasedType(TypingContext.empty)

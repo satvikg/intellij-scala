@@ -1,44 +1,44 @@
 package org.jetbrains.plugins.scala
 package debugger
 
-import com.intellij.debugger.ui.impl.watch.WatchItemDescriptor
-import org.jetbrains.plugins.scala.config.{LibraryLevel, LibraryId, ScalaFacet}
-import com.intellij.testFramework.{PlatformTestCase, UsefulTestCase}
-import com.intellij.execution.runners.{ExecutionEnvironmentBuilder, ProgramRunner}
-import com.intellij.debugger.ui.DebuggerPanelsManager
-import com.intellij.openapi.vfs.LocalFileSystem
-import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.util.concurrency.Semaphore
-import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
-import org.jetbrains.plugins.scala.util.TestUtils
-import com.intellij.execution.process.{ProcessHandler, ProcessListener, ProcessEvent, ProcessAdapter}
-import com.intellij.openapi.util.Key
-import com.intellij.execution.executors.DefaultDebugExecutor
-import com.intellij.debugger.engine.{ContextUtil, DebuggerUtils, SuspendContextImpl, DebugProcessImpl}
-import com.intellij.debugger.impl._
-import junit.framework.Assert
-import org.jetbrains.plugins.scala.debugger.evaluation.ScalaCodeFragmentFactory
-import com.intellij.psi.PsiCodeFragment
-import com.intellij.debugger.engine.evaluation._
-import com.intellij.debugger.DebuggerManagerEx
-import com.intellij.psi.search.GlobalSearchScope
-import expression.EvaluatorBuilder
-import com.sun.jdi.VoidValue
-import com.intellij.openapi.module.Module
-import com.intellij.execution.Executor
-import com.intellij.execution.configurations.RunnerSettings
-import com.intellij.execution.application.{ApplicationConfigurationType, ApplicationConfiguration}
-import java.util.concurrent.atomic.AtomicReference
-import com.intellij.execution.ui.RunContentDescriptor
-import com.intellij.openapi.Disposable
-import java.nio.file._
 import java.io._
-import scala.collection.mutable
-import java.security.MessageDigest
 import java.nio.charset.StandardCharsets
-import com.intellij.ide.highlighter.{ModuleFileType, ProjectFileType}
+import java.nio.file._
+import java.security.MessageDigest
 import java.util
+import java.util.concurrent.atomic.AtomicReference
+
+import com.intellij.debugger.DebuggerManagerEx
+import com.intellij.debugger.engine.evaluation._
+import com.intellij.debugger.engine.evaluation.expression.EvaluatorBuilder
+import com.intellij.debugger.engine.events.DebuggerContextCommandImpl
+import com.intellij.debugger.engine.{ContextUtil, DebugProcessImpl, DebuggerUtils, SuspendContextImpl}
+import com.intellij.debugger.impl._
+import com.intellij.execution.Executor
+import com.intellij.execution.application.{ApplicationConfiguration, ApplicationConfigurationType}
+import com.intellij.execution.configurations.RunnerSettings
+import com.intellij.execution.executors.DefaultDebugExecutor
+import com.intellij.execution.process.{ProcessAdapter, ProcessEvent, ProcessHandler, ProcessListener}
+import com.intellij.execution.runners.{ExecutionEnvironmentBuilder, ProgramRunner}
+import com.intellij.execution.ui.RunContentDescriptor
+import com.intellij.ide.highlighter.{ModuleFileType, ProjectFileType}
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.module.Module
+import com.intellij.openapi.util.Key
+import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.psi.PsiCodeFragment
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.testFramework.{PlatformTestCase, UsefulTestCase}
+import com.intellij.util.concurrency.Semaphore
+import com.sun.jdi.VoidValue
+import junit.framework.Assert
+import org.jetbrains.plugins.scala.config.{LibraryId, LibraryLevel, ScalaFacet}
+import org.jetbrains.plugins.scala.debugger.evaluation.ScalaCodeFragmentFactory
 import org.jetbrains.plugins.scala.extensions._
+import org.jetbrains.plugins.scala.util.TestUtils
+
+import scala.collection.mutable
 
 /**
  * User: Alefas
@@ -127,7 +127,7 @@ abstract class ScalaDebuggerTestCase extends ScalaCompilerTestBase {
     configuration.setMainClassName(className)
     val executor: Executor = Executor.EXECUTOR_EXTENSION_NAME.findExtension(executorClass)
     val executionEnvironmentBuilder: ExecutionEnvironmentBuilder = new ExecutionEnvironmentBuilder(module.getProject, executor)
-    executionEnvironmentBuilder.setRunProfile(configuration)
+    executionEnvironmentBuilder.runProfile(configuration)
     val semaphore: Semaphore = new Semaphore
     semaphore.down()
     val processHandler: AtomicReference[ProcessHandler] = new AtomicReference[ProcessHandler]
@@ -325,7 +325,7 @@ abstract class ScalaDebuggerTestCase extends ScalaCompilerTestBase {
     try {
       val obj = ois.readObject()
       obj match {
-        case map: mutable.HashMap[String, Array[Byte]] => checksums = map
+        case map: mutable.HashMap[String, Array[Byte]] @unchecked => checksums = map
         case _ => needMake = true
       }
     }

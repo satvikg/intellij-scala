@@ -4,17 +4,17 @@ package psi
 package impl
 package base
 
-import api.expr.ScAnnotations
+import com.intellij.lang.ASTNode
+import com.intellij.psi._
+import com.intellij.psi.tree.IElementType
 import org.jetbrains.plugins.scala.lang.lexer.ScalaTokenTypes
 import org.jetbrains.plugins.scala.lang.parser.ScalaElementTypes
-import com.intellij.lang.ASTNode
-import com.intellij.psi.tree.IElementType
-import stubs.ScModifiersStub
-import com.intellij.psi._
-import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiElementFactory
+import org.jetbrains.plugins.scala.lang.psi.api.ScalaElementVisitor
 import org.jetbrains.plugins.scala.lang.psi.api.base._
-import collection.mutable.ArrayBuffer
-import api.ScalaElementVisitor
+import org.jetbrains.plugins.scala.lang.psi.api.expr.ScAnnotations
+import org.jetbrains.plugins.scala.lang.psi.stubs.ScModifiersStub
+
+import scala.collection.mutable.ArrayBuffer
 
 /**
 * @author Alexander Podkhalyuzin
@@ -211,14 +211,14 @@ class ScModifierListImpl extends ScalaStubBasedElementImpl[ScModifierList] with 
   }
 
   def has(prop: IElementType) = {
-    val access = getStubOrPsiChild(ScalaElementTypes.ACCESS_MODIFIER)
+    val modifier = getStubOrPsiChild(ScalaElementTypes.ACCESS_MODIFIER)
     prop match {
-      case ScalaTokenTypes.kPRIVATE if access != null => access.access match {
-        case access.Access.PRIVATE | access.Access.THIS_PRIVATE => true
+      case ScalaTokenTypes.kPRIVATE if modifier != null => modifier.access match {
+        case ScAccessModifier.Type.PRIVATE | ScAccessModifier.Type.THIS_PRIVATE => true
         case _ => false
       }
-      case ScalaTokenTypes.kPROTECTED if access != null => access.access match {
-        case access.Access.PROTECTED | access.Access.THIS_PROTECTED => true
+      case ScalaTokenTypes.kPROTECTED if modifier != null => modifier.access match {
+        case ScAccessModifier.Type.PROTECTED | ScAccessModifier.Type.THIS_PROTECTED => true
         case _ => false
       }
       case _ => {

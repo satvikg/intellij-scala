@@ -10,7 +10,7 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.{JavaPsiFacade, PsiClass, PsiNamedElement}
 import org.atteo.evo.inflector.English
 import org.jetbrains.plugins.scala.decompiler.DecompilerUtil
-import org.jetbrains.plugins.scala.extensions.{toPsiClassExt, toPsiNamedElementExt}
+import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.api.base.{ScLiteral, ScReferenceElement}
 import org.jetbrains.plugins.scala.lang.psi.api.expr._
 import org.jetbrains.plugins.scala.lang.psi.api.statements.ScTypeAliasDefinition
@@ -149,7 +149,7 @@ object NameSuggester {
         val eitherClassName = "scala.util.Either"
         def isInheritor(c: PsiClass, baseFqn: String) = {
           val baseClass = JavaPsiFacade.getInstance(project).findClass(baseFqn, GlobalSearchScope.allScope(project))
-          c.isInheritor(baseClass, true) || ScEquivalenceUtil.areClassesEquivalent(c, baseClass)
+          baseClass != null && (c.isInheritor(baseClass, true) || ScEquivalenceUtil.areClassesEquivalent(c, baseClass))
         }
         val needPrefix = Map(
           "scala.Option" -> "maybe",

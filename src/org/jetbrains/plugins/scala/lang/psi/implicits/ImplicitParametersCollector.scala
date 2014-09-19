@@ -4,7 +4,8 @@ package lang.psi.implicits
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi._
 import com.intellij.psi.util.PsiTreeUtil
-import org.jetbrains.plugins.scala.extensions.toPsiClassExt
+import com.intellij.util.containers.ConcurrentHashMap
+import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.ScalaPsiUtil.SafeCheckException
 import org.jetbrains.plugins.scala.lang.psi.api.InferUtil
 import org.jetbrains.plugins.scala.lang.psi.api.base.ScFieldId
@@ -14,7 +15,7 @@ import org.jetbrains.plugins.scala.lang.psi.api.statements._
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params.{ScClassParameter, ScParameter}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.templates.{ScExtendsBlock, ScTemplateBody}
 import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef.{ScMember, ScObject}
-import org.jetbrains.plugins.scala.lang.psi.api.toplevel.{ScNamedElement, ScTypedDefinition}
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.{ScModifierListOwner, ScNamedElement, ScTypedDefinition}
 import org.jetbrains.plugins.scala.lang.psi.types._
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.{ScMethodType, ScTypePolymorphicType, TypeParameter}
 import org.jetbrains.plugins.scala.lang.psi.types.result.{Success, TypeResult, TypingContext}
@@ -28,6 +29,10 @@ import scala.annotation.tailrec
 import scala.collection.immutable.HashSet
 import scala.collection.mutable.ArrayBuffer
 
+object ImplicitParametersCollector {
+  val cache = new ConcurrentHashMap[(PsiElement, ScType), Seq[ScalaResolveResult]]()
+}
+
 /**
  * @param place        The call site
  * @param tp           Search for an implicit definition of this type. May have type variables.
@@ -35,21 +40,40 @@ import scala.collection.mutable.ArrayBuffer
  * User: Alexander Podkhalyuzin
  * Date: 23.11.2009
  */
-class ImplicitParametersCollector(place: PsiElement, tp: ScType, coreElement: Option[ScNamedElement], searchImplicitsRecursively: Int = 0) {
+class ImplicitParametersCollector(private var place: PsiElement, tp: ScType, coreElement: Option[ScNamedElement],
+                                  searchImplicitsRecursively: Int = 0) {
+  private var placeCalculated = false
+
   def collect: Seq[ScalaResolveResult] = {
+    var result = ImplicitParametersCollector.cache.get((place, tp))
+    if (result != null) return result
     ProgressManager.checkCanceled()
     var processor = new ImplicitParametersProcessor(false)
-    def treeWalkUp(placeForTreeWalkUp: PsiElement, lastParent: PsiElement) {
-      if (placeForTreeWalkUp == null) return
-      if (!placeForTreeWalkUp.processDeclarations(processor,
-        ResolveState.initial(), lastParent, place)) return
+    var placeForTreeWalkUp = place
+    var lastParent: PsiElement = null
+    var stop = false
+    while (!stop) {
+      if (placeForTreeWalkUp == null || !placeForTreeWalkUp.processDeclarations(processor,
+        ResolveState.initial(), lastParent, place)) stop = true
       placeForTreeWalkUp match {
         case (_: ScTemplateBody | _: ScExtendsBlock) => //template body and inherited members are at the same level
-        case _ => if (!processor.changedLevel) return
+        case _ => if (!processor.changedLevel) stop = true
       }
-      treeWalkUp(placeForTreeWalkUp.getContext, placeForTreeWalkUp)
+      if (!stop) {
+        if (!placeCalculated) {
+          place = placeForTreeWalkUp
+          place match {
+            case m: ScModifierListOwner if m.hasModifierProperty("implicit") =>
+              placeCalculated = true //we need to check that, otherwise we will be outside
+            case _ =>
+          }
+          result = ImplicitParametersCollector.cache.get((place, tp))
+          if (result != null) return result
+        }
+        lastParent = placeForTreeWalkUp
+        placeForTreeWalkUp = placeForTreeWalkUp.getContext
+      }
     }
-    treeWalkUp(place, null) //collecting all references from scope
 
     InferUtil.logInfo(searchImplicitsRecursively, "Implicit parameters search first part for type: " + tp.toString)
 
@@ -58,17 +82,19 @@ class ImplicitParametersCollector(place: PsiElement, tp: ScType, coreElement: Op
 
     processor = new ImplicitParametersProcessor(true)
 
-    for (obj <- ScalaPsiUtil.collectImplicitObjects(tp, place)) {
+    for (obj <- ScalaPsiUtil.collectImplicitObjects(tp, place.getProject, place.getResolveScope)) {
       processor.processType(obj, place, ResolveState.initial())
     }
 
     InferUtil.logInfo(searchImplicitsRecursively, "Implicit parameters search second part for type: " + tp.toString)
 
     val secondCandidates = processor.candidatesS.toSeq
-    if (secondCandidates.isEmpty) {
+    result = if (secondCandidates.isEmpty) {
       InferUtil.logInfo(searchImplicitsRecursively, "Implicit parameters search second part failed for type: " + tp.toString)
       candidates
     } else secondCandidates
+    ImplicitParametersCollector.cache.put((place, tp), result)
+    result
   }
 
   class ImplicitParametersProcessor(withoutPrecedence: Boolean) extends ImplicitProcessor(StdKinds.refExprLastRef, withoutPrecedence) {
@@ -80,9 +106,11 @@ class ImplicitParametersCollector(place: PsiElement, tp: ScType, coreElement: Op
       val subst = getSubst(state)
       named match {
         case o: ScObject if o.hasModifierProperty("implicit") =>
+          placeCalculated = true
           if (!isPredefPriority && !ResolveUtils.isAccessible(o, getPlace)) return true
           addResult(new ScalaResolveResult(o, subst, getImports(state)))
         case param: ScParameter if param.isImplicitParameter =>
+          placeCalculated = true
           param match {
             case c: ScClassParameter =>
               if (!isPredefPriority && !ResolveUtils.isAccessible(c, getPlace)) return true
@@ -93,6 +121,7 @@ class ImplicitParametersCollector(place: PsiElement, tp: ScType, coreElement: Op
           val memb = ScalaPsiUtil.getContextOfType(f, true, classOf[ScValue], classOf[ScVariable])
           memb match {
             case memb: ScMember if memb.hasModifierProperty("implicit") =>
+              placeCalculated = true
               if (!isPredefPriority && !ResolveUtils.isAccessible(memb, getPlace)) return true
               addResult(new ScalaResolveResult(named, subst, getImports(state)))
             case _ =>
@@ -101,11 +130,13 @@ class ImplicitParametersCollector(place: PsiElement, tp: ScType, coreElement: Op
           val memb = ScalaPsiUtil.getContextOfType(patt, true, classOf[ScValue], classOf[ScVariable])
           memb match {
             case memb: ScMember if memb.hasModifierProperty("implicit") =>
+              placeCalculated = true
               if (!isPredefPriority && !ResolveUtils.isAccessible(memb, getPlace)) return true
               addResult(new ScalaResolveResult(named, subst, getImports(state)))
             case _ =>
           }
         case function: ScFunction if function.hasModifierProperty("implicit") =>
+          placeCalculated = true
           if (isPredefPriority || (ScImplicitlyConvertible.checkFucntionIsEligible(function, place) &&
               ResolveUtils.isAccessible(function, getPlace))) {
             addResult(new ScalaResolveResult(named, subst, getImports(state)))

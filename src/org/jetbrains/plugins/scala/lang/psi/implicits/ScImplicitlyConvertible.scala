@@ -3,32 +3,33 @@ package lang
 package psi
 package implicits
 
-import api.toplevel.imports.usages.ImportUsed
-import caches.CachesUtil
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.Key
-import com.intellij.psi.util.{PsiTreeUtil, CachedValue, PsiModificationTracker}
-import types._
-import collection.{mutable, Set}
 import com.intellij.psi._
-import collection.mutable.ArrayBuffer
-import api.base.patterns.ScBindingPattern
-import api.statements._
-import api.toplevel.{ScModifierListOwner, ScTypedDefinition}
-import api.toplevel.typedef._
-import nonvalue.Parameter
-import params.{ScClassParameter, ScParameter}
-import api.toplevel.templates.{ScExtendsBlock, ScTemplateBody}
-import lang.resolve.{ResolveUtils, StdKinds, ScalaResolveResult}
-import psi.impl.ScalaPsiManager
-import api.expr.{ScMethodCall, ScExpression}
-import result.TypingContext
-import lang.resolve.processor.{BaseProcessor, ImplicitProcessor}
-import extensions.toObjectExt
-import api.InferUtil
-import languageLevel.ScalaLanguageLevel
-import types.Compatibility.Expression
-import com.intellij.openapi.diagnostic.Logger
+import com.intellij.psi.util.{CachedValue, PsiModificationTracker, PsiTreeUtil}
+import org.jetbrains.plugins.scala.caches.CachesUtil
+import org.jetbrains.plugins.scala.extensions._
+import org.jetbrains.plugins.scala.lang.languageLevel.ScalaLanguageLevel
+import org.jetbrains.plugins.scala.lang.psi.api.InferUtil
+import org.jetbrains.plugins.scala.lang.psi.api.base.patterns.ScBindingPattern
+import org.jetbrains.plugins.scala.lang.psi.api.expr.{ScExpression, ScMethodCall}
+import org.jetbrains.plugins.scala.lang.psi.api.statements._
+import org.jetbrains.plugins.scala.lang.psi.api.statements.params.{ScClassParameter, ScParameter}
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.imports.usages.ImportUsed
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.templates.{ScExtendsBlock, ScTemplateBody}
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.typedef._
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.{ScModifierListOwner, ScTypedDefinition}
+import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiManager
+import org.jetbrains.plugins.scala.lang.psi.types.Compatibility.Expression
+import org.jetbrains.plugins.scala.lang.psi.types._
+import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.Parameter
+import org.jetbrains.plugins.scala.lang.psi.types.result.TypingContext
+import org.jetbrains.plugins.scala.lang.resolve.processor.{BaseProcessor, ImplicitProcessor}
+import org.jetbrains.plugins.scala.lang.resolve.{ResolveUtils, ScalaResolveResult, StdKinds}
+
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.{Set, mutable}
 
 /**
  * Utility class for implicit conversions.
@@ -53,7 +54,7 @@ class ScImplicitlyConvertible(place: PsiElement, placeType: Boolean => Option[Sc
     })
   }
 
-  import ScImplicitlyConvertible._
+  import org.jetbrains.plugins.scala.lang.psi.implicits.ScImplicitlyConvertible._
 
   def implicitMap(exp: Option[ScType] = None,
                   fromUnder: Boolean = false,
@@ -120,7 +121,7 @@ class ScImplicitlyConvertible(place: PsiElement, placeType: Boolean => Option[Sc
         case None if args.nonEmpty => ScTupleType(Seq(typez) ++ args)(place.getProject, place.getResolveScope)
         case None => typez
       }
-      for (obj <- ScalaPsiUtil.collectImplicitObjects(expandedType, place)) {
+      for (obj <- ScalaPsiUtil.collectImplicitObjects(expandedType, place.getProject, place.getResolveScope)) {
         processor.processType(obj, place, ResolveState.initial())
       }
       for (res <- processor.candidatesS.map(forMap(_, typez)) if res.condition) {
@@ -459,7 +460,7 @@ class ScImplicitlyConvertible(place: PsiElement, placeType: Boolean => Option[Sc
 
   private def isConformsMethod(f: ScFunction): Boolean = {
     (f.name == "conforms" || f.name == "$conforms") &&
-            Option(f.containingClass).flatMap(cls => Option(cls.qualifiedName)).exists(_ == "scala.Predef")
+            Option(f.containingClass).flatMap(cls => Option(cls.qualifiedName)).contains("scala.Predef")
   }
 }
 
@@ -489,7 +490,8 @@ object ScImplicitlyConvertible {
     if (!function.hasExplicitType) {
       if (PsiTreeUtil.isContextAncestor(function.getContainingFile, place, false)) {
         val commonContext = PsiTreeUtil.findCommonContext(function, place)
-        if (function == commonContext || place == commonContext) return false
+        if (place == commonContext) return true //weird case, it covers situation, when function comes from object, not treeWalkUp
+        if (function == commonContext) return false
         else {
           var functionContext: PsiElement = function
           while (functionContext.getContext != commonContext) functionContext = functionContext.getContext

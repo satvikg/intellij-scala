@@ -9,7 +9,7 @@ import com.intellij.psi._
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.plugins.scala.debugger.evaluation.evaluator._
 import org.jetbrains.plugins.scala.debugger.evaluation.util.DebuggerUtil
-import org.jetbrains.plugins.scala.extensions.{toObjectExt, toPsiClassExt, toPsiModifierListOwnerExt, toPsiNamedElementExt}
+import org.jetbrains.plugins.scala.extensions._
 import org.jetbrains.plugins.scala.lang.psi.ScalaPsiUtil
 import org.jetbrains.plugins.scala.lang.psi.api.base._
 import org.jetbrains.plugins.scala.lang.psi.api.base.patterns._
@@ -945,7 +945,6 @@ object ScalaEvaluatorBuilder extends EvaluatorBuilder {
           val exprText = s"($qualText).concat(_root_.java.lang.String.valueOf(${arguments(0).getText})"
           val expr = ScalaPsiElementFactory.createExpressionFromText(exprText, ref.getManager)
           expr.accept(this)
-          myResult
         case synth: ScSyntheticFunction =>
           evaluateSyntheticFunction(synth, qualOption, ref, argEvaluators) //todo: use matched parameters
         case fun: ScFunction if isArrayFunction(fun) =>
@@ -1538,7 +1537,7 @@ object ScalaEvaluatorBuilder extends EvaluatorBuilder {
       throw EvaluateExceptionUtil.createEvaluateException("Evaluation of values is not supported")
     }
 
-    override def visitTypeDefintion(typedef: ScTypeDefinition) {
+    override def visitTypeDefinition(typedef: ScTypeDefinition) {
       throw EvaluateExceptionUtil.createEvaluateException("Evaluation of local classes is not supported")
     }
 

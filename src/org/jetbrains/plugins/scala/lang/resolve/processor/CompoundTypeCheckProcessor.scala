@@ -1,17 +1,16 @@
 package org.jetbrains.plugins.scala.lang.resolve.processor
 
-import org.jetbrains.plugins.scala.lang.psi.api.base.patterns.ScBindingPattern
-import org.jetbrains.plugins.scala.lang.psi.types.result.TypingContext
-import org.jetbrains.plugins.scala.lang.psi.types._
-import org.jetbrains.plugins.scala.lang.psi.api.base.ScFieldId
-import org.jetbrains.plugins.scala.lang.resolve.{ResolveTargets, StdKinds}
-import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScTypeAliasDeclaration, ScTypeAliasDefinition, ScTypeAlias, ScFunction}
-import org.jetbrains.plugins.scala.lang.psi.api.toplevel.{ScTypedDefinition, ScTypeParametersOwner}
-import org.jetbrains.plugins.scala.lang.psi.api.statements.params.{ScTypeParam, ScParameter}
 import com.intellij.psi._
-import org.jetbrains.plugins.scala.extensions.toPsiNamedElementExt
+import org.jetbrains.plugins.scala.extensions._
+import org.jetbrains.plugins.scala.lang.psi.api.base.ScFieldId
+import org.jetbrains.plugins.scala.lang.psi.api.base.patterns.ScBindingPattern
+import org.jetbrains.plugins.scala.lang.psi.api.statements.params.{ScParameter, ScTypeParam}
+import org.jetbrains.plugins.scala.lang.psi.api.statements.{ScFunction, ScTypeAlias, ScTypeAliasDeclaration, ScTypeAliasDefinition}
+import org.jetbrains.plugins.scala.lang.psi.api.toplevel.{ScTypeParametersOwner, ScTypedDefinition}
+import org.jetbrains.plugins.scala.lang.psi.types._
 import org.jetbrains.plugins.scala.lang.psi.types.nonvalue.TypeParameter
-import org.jetbrains.plugins.scala.lang.psi.ScalaPsiUtil
+import org.jetbrains.plugins.scala.lang.psi.types.result.TypingContext
+import org.jetbrains.plugins.scala.lang.resolve.{ResolveTargets, StdKinds}
 
 /**
  * @author Alexander Podkhalyuzin
@@ -98,7 +97,7 @@ class CompoundTypeCheckSignatureProcessor(s: Signature, retType: ScType,
     }
 
     def checkSignature(sign1: Signature, typeParams: Array[PsiTypeParameter], returnType: ScType): Boolean = {
-      import Signature.unify
+      import org.jetbrains.plugins.scala.lang.psi.types.Signature.unify
 
       val sign2 = s
 
@@ -135,8 +134,8 @@ class CompoundTypeCheckSignatureProcessor(s: Signature, retType: ScType,
         })
         val dcl: ScTypedDefinition = element.asInstanceOf[ScTypedDefinition]
         val isVar = dcl.isVar
-        if (!checkSignature(new Signature(dcl.name, Stream.empty, 0, subst, dcl), Array.empty, rt)) return false
-        if (isVar && !checkSignature(new Signature(dcl.name + "_=", ScalaPsiUtil.getSingletonStream(rt), 1, subst, dcl),
+        if (!checkSignature(new Signature(dcl.name, Seq.empty, 0, subst, dcl), Array.empty, rt)) return false
+        if (isVar && !checkSignature(new Signature(dcl.name + "_=", Seq(() => rt), 1, subst, dcl),
           Array.empty, Unit)) return false
       case method: PsiMethod =>
         val sign1 = new PhysicalSignature(method, subst)

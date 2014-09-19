@@ -318,8 +318,8 @@ class ScalaAnnotator extends Annotator with FunctionAnnotator with ScopeAnnotato
         super.visitParameters(parameters)
       }
 
-      override def visitTypeDefintion(typedef: ScTypeDefinition) {
-        super.visitTypeDefintion(typedef)
+      override def visitTypeDefinition(typedef: ScTypeDefinition) {
+        super.visitTypeDefinition(typedef)
       }
 
       override def visitExistentialTypeElement(exist: ScExistentialTypeElement): Unit = {
@@ -687,7 +687,7 @@ class ScalaAnnotator extends Annotator with FunctionAnnotator with ScopeAnnotato
           annotation.setHighlightType(ProblemHighlightType.GENERIC_ERROR)
           annotation.registerFix(ReportHighlightingErrorQuickFix)
           refWithoutArgs match {
-            case Resolved(obj: ScObject) => annotation.registerFix(fix(obj))
+            case Resolved(obj: ScObject, _) => annotation.registerFix(fix(obj))
             case InstanceOfClass(td: ScTypeDefinition) => annotation.registerFix(fix(td))
             case _ =>
           }

@@ -1,10 +1,12 @@
 package org.jetbrains.sbt
 package model
 
-import org.junit.{Test, Assert}
-import scala.xml.XML
-import org.jetbrains.sbt.project.structure._
 import java.io.File
+
+import org.jetbrains.sbt.project.structure._
+import org.junit.{Assert, Test}
+
+import scala.xml.XML
 
 /**
  * @author Pavel Fatin
@@ -63,6 +65,7 @@ object StructureParserTest {
       configurations = Seq(configuration),
       java = Some(java),
       scala = Some(scala),
+      android = None,
       dependencies = dependencies,
       resolvers = Set.empty)
 
@@ -74,6 +77,6 @@ object StructureParserTest {
 
     val repository = Repository(new File("."), Seq(module))
 
-    Structure(Seq(project), Some(repository))
+    Structure(Seq(project), Some(repository), None)
   }
 }

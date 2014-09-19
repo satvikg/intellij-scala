@@ -1,18 +1,19 @@
 package org.jetbrains.sbt
 package project
 
-import com.intellij.openapi.externalSystem.service.project.ExternalSystemProjectResolver
-import com.intellij.openapi.externalSystem.model.task.{ExternalSystemTaskNotificationListener, ExternalSystemTaskNotificationEvent, ExternalSystemTaskId}
-import com.intellij.openapi.externalSystem.model.project._
-import com.intellij.openapi.module.StdModuleTypes
-import com.intellij.openapi.externalSystem.model.{ExternalSystemException, DataNode}
-import com.intellij.openapi.roots.DependencyScope
 import java.io.File
-import module.SbtModuleType
+
+import com.intellij.openapi.externalSystem.model.project._
+import com.intellij.openapi.externalSystem.model.task.{ExternalSystemTaskId, ExternalSystemTaskNotificationEvent, ExternalSystemTaskNotificationListener}
+import com.intellij.openapi.externalSystem.model.{DataNode, ExternalSystemException}
+import com.intellij.openapi.externalSystem.service.project.ExternalSystemProjectResolver
+import com.intellij.openapi.module.StdModuleTypes
+import com.intellij.openapi.roots.DependencyScope
+import org.jetbrains.sbt.project.data._
+import org.jetbrains.sbt.project.module.SbtModuleType
+import org.jetbrains.sbt.project.settings._
+import org.jetbrains.sbt.project.structure._
 import org.jetbrains.sbt.resolvers.SbtResolver
-import settings._
-import structure._
-import data._
 
 /**
  * @author Pavel Fatin
@@ -68,7 +69,11 @@ class SbtProjectResolver extends ExternalSystemProjectResolver[SbtExecutionSetti
 
     val javacOptions = project.java.map(_.options).getOrElse(Seq.empty)
 
-    projectNode.add(new ScalaProjectNode(jdk, javacOptions))
+    if (project.android.isDefined) {
+      projectNode.add(new ScalaProjectNode(Some(ScalaProjectData.Android(project.android.get.version)), javacOptions))
+    } else {
+      projectNode.add(new ScalaProjectNode(jdk map ScalaProjectData.Jdk, javacOptions))
+    }
 
     val libraries = {
       val repositoryModules = data.repository.map(_.modules).getOrElse(Seq.empty)
@@ -93,6 +98,7 @@ class SbtProjectResolver extends ExternalSystemProjectResolver[SbtExecutionSetti
       moduleNode.add(createContentRoot(project))
       moduleNode.addAll(createLibraryDependencies(project.dependencies.modules)(moduleNode, libraries.map(_.data)))
       moduleNode.addAll(project.scala.map(createFacet(project, _)).toSeq)
+      moduleNode.addAll(project.android.map(createFacet(project, _)).toSeq)
       moduleNode.addAll(createUnmanagedDependencies(project.dependencies.jars)(moduleNode))
       moduleNode
     }
@@ -110,7 +116,8 @@ class SbtProjectResolver extends ExternalSystemProjectResolver[SbtExecutionSetti
       }
     }
 
-    projectNode.addAll(projects.map(createBuildModule(_, moduleFilesDirectory)))
+    val localCachePath = data.localCachePath
+    projectNode.addAll(projects.map(createBuildModule(_, moduleFilesDirectory, localCachePath)))
 
     projectNode
   }
@@ -119,6 +126,12 @@ class SbtProjectResolver extends ExternalSystemProjectResolver[SbtExecutionSetti
     val basePackage = Some(project.organization).filter(_.contains(".")).mkString
 
     new ScalaFacetNode(scala.version, basePackage, internalNameFor(scala), scala.options)
+  }
+
+  private def createFacet(project: Project, android: Android): AndroidFacetNode = {
+    new AndroidFacetNode(android.version, android.manifestFile, android.apkPath,
+                         android.resPath, android.assetsPath, android.genPath, android.libsPath,
+                         android.isLibrary, android.proguardConfig)
   }
 
   private def createUnresolvedLibrary(moduleId: ModuleId): LibraryNode = {
@@ -188,8 +201,8 @@ class SbtProjectResolver extends ExternalSystemProjectResolver[SbtExecutionSetti
     result.storePaths(ExternalSystemSourceType.TEST, testSources)
     result.storePaths(ExternalSystemSourceType.TEST_RESOURCE, testResources)
 
-    if(canExcludeTargetIn(project)) {
-      result.storePath(ExternalSystemSourceType.EXCLUDED, project.target.path)
+    getExcludedTargetDirs(project).foreach { path =>
+      result.storePath(ExternalSystemSourceType.EXCLUDED, path.path)
     }
 
     result
@@ -197,7 +210,7 @@ class SbtProjectResolver extends ExternalSystemProjectResolver[SbtExecutionSetti
 
   // We cannot always exclude the whole ./target/ directory because of
   // the generated sources, so we resort to an heuristics.
-  private def canExcludeTargetIn(project: Project): Boolean = {
+  private def getExcludedTargetDirs(project: Project): List[File] = {
     val managedDirectories = project.configurations
             .flatMap(configuration => configuration.sources ++ configuration.resources)
             .filter(_.managed)
@@ -206,11 +219,17 @@ class SbtProjectResolver extends ExternalSystemProjectResolver[SbtExecutionSetti
     val defaultNames = Set("main", "test")
 
     val relevantDirectories = managedDirectories.filter(file => file.exists || !defaultNames.contains(file.getName))
+    def isRelevant(f: File): Boolean = !relevantDirectories.forall(_.isOutsideOf(f))
 
-    relevantDirectories.forall(_.isOutsideOf(project.target))
+    if (isRelevant(project.target)) {
+      // If we can't exclude the target directory, go one level deeper (which may hit resolution-cache and streams)
+      Option(project.target.listFiles()).toList.flatten.filter {
+        child => child.isDirectory && !isRelevant(child)
+      }
+    } else List(project.target)
   }
 
-  private def createBuildModule(project: Project, moduleFilesDirectory: File): ModuleNode = {
+  private def createBuildModule(project: Project, moduleFilesDirectory: File, localCachePath: Option[String]): ModuleNode = {
     val id = project.id + Sbt.BuildModuleSuffix
     val name = project.name + Sbt.BuildModuleSuffix
     val buildRoot = project.base / Sbt.ProjectDirectory
@@ -235,7 +254,7 @@ class SbtProjectResolver extends ExternalSystemProjectResolver[SbtExecutionSetti
 
     result.add(library)
 
-    result.add(createSbtModuleData(project))
+    result.add(createSbtModuleData(project, localCachePath))
 
     result
   }
@@ -255,10 +274,10 @@ class SbtProjectResolver extends ExternalSystemProjectResolver[SbtExecutionSetti
     result
   }
 
-  def createSbtModuleData(project: Project): SbtModuleNode = {
+  def createSbtModuleData(project: Project, localCachePath: Option[String]): SbtModuleNode = {
     val imports = project.build.imports.flatMap(_.substring(7).split(", "))
-    val resolvers = project.resolvers map { r => new SbtResolver(r.name, r.root) }
-    new SbtModuleNode(imports, resolvers)
+    val resolvers = project.resolvers map { r => new SbtResolver(SbtResolver.Kind.Maven, r.name, r.root) }
+    new SbtModuleNode(imports, resolvers + SbtResolver.localCacheResolver(localCachePath))
   }
 
   private def validRootPathsIn(project: Project, scope: String)

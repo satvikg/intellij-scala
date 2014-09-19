@@ -1,15 +1,17 @@
-package org.jetbrains.plugins.scala.lang.psi.types.nonvalue
+package org.jetbrains.plugins.scala
+package lang.psi.types.nonvalue
 
-import org.jetbrains.plugins.scala.Suspension
-import org.jetbrains.plugins.scala.lang.psi.types._
 import com.intellij.openapi.project.Project
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.{PsiParameter, PsiTypeParameter}
+import org.jetbrains.plugins.scala.extensions.PsiParameterExt
 import org.jetbrains.plugins.scala.lang.psi.ScalaPsiUtil
 import org.jetbrains.plugins.scala.lang.psi.api.statements.params.{ScParameter, ScTypeParam}
-import result.TypingContext
-import com.intellij.psi.PsiTypeParameter
 import org.jetbrains.plugins.scala.lang.psi.impl.ScalaPsiManager
-import collection.immutable.{HashSet, HashMap}
+import org.jetbrains.plugins.scala.lang.psi.types._
+import org.jetbrains.plugins.scala.lang.psi.types.result.TypingContext
+
+import scala.collection.immutable.{HashMap, HashSet}
 
 /**
  * @author ilyas
@@ -28,7 +30,7 @@ trait NonValueType extends ScType {
  */
 case class Parameter(name: String, deprecatedName: Option[String], paramType: ScType, expectedType: ScType,
                      isDefault: Boolean, isRepeated: Boolean,
-                     isByName: Boolean, index: Int = -1, paramInCode: Option[ScParameter] = None) {
+                     isByName: Boolean, index: Int = -1, psiParam: Option[PsiParameter] = None) {
   def this(name: String, deprecatedName: Option[String], paramType: ScType, isDefault: Boolean, isRepeated: Boolean,
            isByName: Boolean, index: Int) {
     this(name, deprecatedName, paramType, paramType, isDefault, isRepeated, isByName, index)
@@ -38,6 +40,17 @@ case class Parameter(name: String, deprecatedName: Option[String], paramType: Sc
     this(param.name, param.deprecatedName, param.getType(TypingContext.empty).getOrAny, param.getType(TypingContext.empty).getOrAny,
       param.isDefaultParam, param.isRepeatedParameter, param.isCallByNameParameter, param.index, Some(param))
   }
+
+  def this(param: PsiParameter) {
+    this(param.getName, None, param.paramType, param.paramType, false, param.isVarArgs, false, param.index, Some(param))
+  }
+
+  def paramInCode: Option[ScParameter] = psiParam match {
+    case Some(scParam: ScParameter) => Some(scParam)
+    case _ => None
+  }
+
+  def nameInCode = psiParam.map(_.getName)
 }
 
 /**
@@ -46,8 +59,8 @@ case class Parameter(name: String, deprecatedName: Option[String], paramType: Sc
  * @param lowerType important to be lazy, see SCL-7216
  * @param upperType important to be lazy, see SCL-7216
  */
-case class TypeParameter(name: String, typeParams: Seq[TypeParameter], lowerType: () => ScType, upperType: () => ScType,
-                         ptp: PsiTypeParameter) {
+class TypeParameter(val name: String, val typeParams: Seq[TypeParameter], val lowerType: () => ScType,
+                    val upperType: () => ScType, val ptp: PsiTypeParameter) {
   def this(ptp: PsiTypeParameter) {
     this(ptp match {
       case tp: ScTypeParam => tp.name
@@ -72,6 +85,35 @@ case class TypeParameter(name: String, typeParams: Seq[TypeParameter], lowerType
       val res = fun(upperType())
       () => res
     }, ptp)
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[TypeParameter]
+
+  override def equals(other: Any): Boolean = other match {
+    case that: TypeParameter =>
+      (that canEqual this) &&
+        name == that.name &&
+        typeParams == that.typeParams &&
+        lowerType() == that.lowerType() &&
+        upperType() == that.upperType() &&
+        ptp == that.ptp
+    case _ => false
+  }
+
+  override def hashCode(): Int = {
+    val state = Seq(name, typeParams, ptp)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+}
+
+object TypeParameter {
+  def apply(name: String, typeParams: Seq[TypeParameter], lowerType: () => ScType, upperType: () => ScType,
+            ptp: PsiTypeParameter): TypeParameter = {
+    new TypeParameter(name, typeParams, lowerType, upperType, ptp)
+  }
+
+  def unapply(t: TypeParameter): Option[(String, Seq[TypeParameter], () => ScType, () => ScType, PsiTypeParameter)] = {
+    Some(t.name, t.typeParams, t.lowerType, t.upperType, t.ptp)
   }
 }
 
@@ -313,7 +355,9 @@ case class ScTypePolymorphicType(internalType: ScType, typeParameters: Seq[TypeP
     }
   }
 
-  def visitType(visitor: ScalaTypeVisitor) {}
+  def visitType(visitor: ScalaTypeVisitor): Unit = {
+    visitor.visitTypePolymorphicType(this)
+  }
 
   override def typeDepth: Int = {
     if (typeParameters.nonEmpty) internalType.typeDepth.max(ScType.typeParamsDepth(typeParameters.toArray) + 1)

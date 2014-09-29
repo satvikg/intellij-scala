@@ -28,6 +28,7 @@ class SbtProjectDataService(platformFacade: PlatformFacade, helper: ProjectStruc
     toImport.asScala.foreach { node =>
       val data = node.getData
 
+
       val existingJdk = Option(ProjectRootManager.getInstance(project).getProjectSdk)
 
       val projectJdk = existingJdk.orElse(data.jdk.flatMap(findJdkBy)).orElse(allJdks.headOption)
@@ -139,6 +140,11 @@ object SbtProjectDataService {
       setLanguageLevelIn(project, level)
       JavaLanguageLevelPusher.pushLanguageLevel(project)
     }
+  }
+
+  private def createRunConfigurations(project: Project, runConfigurations: Seq[RunConfigurationData]) = {
+
+    ???
   }
 
   // TODO don't rely on XML when there will be other ways to bypass "reload project" message

@@ -36,8 +36,9 @@ object StructureParser {
     val android = (node \ "android").headOption.map(parseAndroid(_)(fs.withBase(base)))
     val dependencies = parseDependencies(node)(fs.withBase(base))
     val resolvers = parseResolvers(node)
+    val runConfigurations = (node \ "runConfiguration").map(parseRunConfigurations)
 
-    Project(id, name, organization, version, base, target, build, configurations, java, scala, android, dependencies, resolvers)
+    Project(id, name, organization, version, base, target, build, configurations, java, scala, android, dependencies, resolvers, runConfigurations)
   }
 
   private def parseBuild(node: Node)(implicit fs: FS): Build = {
@@ -47,6 +48,21 @@ object StructureParser {
     val sources = (node \ "sources").map(e => file(e.text))
 
     Build(imports, classes, docs, sources)
+  }
+
+  private def parseRunConfigurations(node: Node): RunConfiguration = {
+    val mainClass = (node \ "mainClass").text
+    val homePath  = (node \ "homePath").text
+    val moduleName= (node \ "moduleName").text
+    val vmOpts    = (node \ "vmOpts") map { opt => (opt \ "opt").text }
+    val artifacts = (node \ "artifacts") map { art => (art \ "artifact").text }
+    RunConfiguration(
+      mainClass = mainClass,
+      homePath = homePath,
+      moduleName = moduleName,
+      vmOpts = vmOpts,
+      artifacts = artifacts
+    )
   }
 
   private def parseJava(node: Node)(implicit fs: FS): Java = {

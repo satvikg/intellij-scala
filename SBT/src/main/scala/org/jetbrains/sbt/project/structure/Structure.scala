@@ -5,7 +5,7 @@ import java.io.File
 
 case class Structure(projects: Seq[Project], repository: Option[Repository], localCachePath: Option[String])
 
-case class Project(id: String, name: String, organization: String, version: String, base: File, target: File, build: Build, configurations: Seq[Configuration], java: Option[Java], scala: Option[Scala], android: Option[Android], dependencies: Dependencies, resolvers: Set[Resolver])
+case class Project(id: String, name: String, organization: String, version: String, base: File, target: File, build: Build, configurations: Seq[Configuration], java: Option[Java], scala: Option[Scala], android: Option[Android], dependencies: Dependencies, resolvers: Set[Resolver], runConfigurations: Seq[RunConfiguration])
 
 case class Build(imports: Seq[String], classes: Seq[File], docs: Seq[File], sources: Seq[File])
 
@@ -34,3 +34,5 @@ case class Repository(base: File, modules: Seq[Module])
 case class Directory(file: File, managed: Boolean)
 
 case class Resolver(name: String, root: String)
+
+case class RunConfiguration(mainClass: String, homePath: String, vmOpts: Seq[String], moduleName: String, artifacts: Seq[String])

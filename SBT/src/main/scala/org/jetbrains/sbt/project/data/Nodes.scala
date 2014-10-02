@@ -6,6 +6,7 @@ import java.io.File
 import com.intellij.openapi.externalSystem.model.project._
 import com.intellij.openapi.externalSystem.model.{DataNode, Key, ProjectKeys}
 import org.jetbrains.sbt.project.SbtProjectSystem
+import org.jetbrains.sbt.project.structure.RunConfigurationI
 import org.jetbrains.sbt.resolvers.SbtResolver
 
 /**
@@ -31,8 +32,8 @@ class ModuleNode(val data: ModuleData)
 
 class RunConfigurationNode(val data: RunConfigurationData)
   extends Node[RunConfigurationData] {
-  def this(mainClass: String, homePath: String, vmOpts: Seq[String], moduleName: String, artifacts: Seq[String]) {
-    this(new RunConfigurationData(SbtProjectSystem.Id, mainClass, homePath, vmOpts, moduleName, artifacts))
+  def this(runConfiguration: RunConfigurationI) {
+    this(new RunConfigurationData(SbtProjectSystem.Id, runConfiguration))
   }
   override protected def key: Key[RunConfigurationData] = RunConfigurationData.Key
 }

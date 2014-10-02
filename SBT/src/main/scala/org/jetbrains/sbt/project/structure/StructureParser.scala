@@ -50,19 +50,30 @@ object StructureParser {
     Build(imports, classes, docs, sources)
   }
 
-  private def parseRunConfigurations(node: Node): RunConfiguration = {
-    val mainClass = (node \ "mainClass").text
+  private def parseRunConfigurations(node: Node): RunConfigurationI = {
     val homePath  = (node \ "homePath").text
     val moduleName= (node \ "moduleName").text
     val vmOpts    = (node \ "vmOpts") map { opt => (opt \ "opt").text }
     val artifacts = (node \ "artifacts") map { art => (art \ "artifact").text }
-    RunConfiguration(
-      mainClass = mainClass,
-      homePath = homePath,
-      moduleName = moduleName,
-      vmOpts = vmOpts,
-      artifacts = artifacts
-    )
+    (node \ "@kind").text match {
+      case "application" =>
+        SbtAppRunConfiguration(
+          mainClass = (node \ "mainClass").text,
+          homePath = homePath,
+          moduleName = moduleName,
+          vmOpts = vmOpts,
+          artifacts = artifacts
+        )
+      case "scalatest" =>
+        SbtScalaTestRunConfiguration(
+          inPackage = (node \ "inPackage").text,
+          homePath = homePath,
+          moduleName = moduleName,
+          vmOpts = vmOpts,
+          artifacts = artifacts
+        )
+      case other => throw new RuntimeException(s"unknown configuration kind: $other")
+    }
   }
 
   private def parseJava(node: Node)(implicit fs: FS): Java = {

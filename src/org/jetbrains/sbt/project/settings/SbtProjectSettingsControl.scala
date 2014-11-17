@@ -12,6 +12,7 @@ import com.intellij.openapi.roots.ui.configuration.JdkComboBox
 import com.intellij.openapi.roots.ui.configuration.projectRoot.ProjectSdksModel
 import com.intellij.openapi.util.Condition
 import org.jetbrains.annotations.NotNull
+import org.jetbrains.sbt.controls.SbtVersionComboBox
 
 /**
  * @author Pavel Fatin
@@ -46,17 +47,27 @@ class SbtProjectSettingsControl(context: Context, initialSettings: SbtProjectSet
 
   private val resolveSbtClassifiersCheckBox = new JCheckBox(SbtBundle("sbt.settings.resolveSbtClassifiers"))
 
+  private val sbtVersionComboBox = new SbtVersionComboBox
+
   def fillExtraControls(@NotNull content: PaintAwarePanel, indentLevel: Int) {
-    val label = new JLabel("Project \u001BSDK:")
-    label.setLabelFor(jdkComboBox)
+    val jdkLabel = new JLabel("Project \u001BSDK:")
+    jdkLabel.setLabelFor(jdkComboBox)
 
     val jdkPanel = new JPanel(new FlowLayout(FlowLayout.LEFT))
-    jdkPanel.add(label)
+    jdkPanel.add(jdkLabel)
     jdkPanel.add(jdkComboBox)
     jdkPanel.add(jdkComboBox.getSetUpButton)
 
     content.add(resolveClassifiersCheckBox, getFillLineConstraints(indentLevel))
     content.add(resolveSbtClassifiersCheckBox, getFillLineConstraints(indentLevel))
+
+    val sbtVersionLabel = new JLabel("SBT version:")
+    sbtVersionLabel.setLabelFor(sbtVersionComboBox)
+
+    val sbtVersionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT))
+    sbtVersionPanel.add(sbtVersionLabel)
+    sbtVersionPanel.add(sbtVersionComboBox)
+    content.add(sbtVersionPanel, getFillLineConstraints(indentLevel))
 
     if (context == Context.Wizard) {
       content.add(jdkPanel, getFillLineConstraints(indentLevel))

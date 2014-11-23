@@ -2,6 +2,7 @@ package org.jetbrains.sbt
 package annotator
 
 import com.intellij.lang.annotation.{AnnotationHolder, Annotator}
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.{PsiComment, PsiElement, PsiWhiteSpace}
 import org.jetbrains.plugins.scala.lang.psi.api.expr.ScExpression
@@ -23,20 +24,22 @@ class SbtAnnotator extends Annotator {
       case file: SbtFileImpl =>
         val children = file.children.toVector
         checkElements(children, holder)
-        val sbtVersion = SbtSettings.getInstance(element.getProject).sbtVersion
-        if (StringUtil.compareVersionNumbers(sbtVersion, "0.13.7") < 0)
-          checkBlankLines(children, holder, sbtVersion)
+        if (StringUtil.compareVersionNumbers(sbtVersion(element.getProject), "0.13.7") < 0)
+          checkBlankLines(children, holder, sbtVersion(element.getProject))
       case _ =>
     }
+  }
+
+  private def sbtVersion(project: Project): String = {
+    val settings = SbtSettings.getInstance(project)
+    val projectSettings = Option(settings.getLinkedProjectSettings(project.getBasePath))
+    projectSettings.safeMap(_.sbtVersion).getOrElse(settings.sbtVersion)
   }
 
   private def checkElements(children: Seq[PsiElement], holder: AnnotationHolder) {
     if (children.isEmpty) return 
     
-    val is13_+ = {
-      val sbtVersion = SbtSettings.getInstance(children.head.getProject).sbtVersion
-      StringUtil.compareVersionNumbers(sbtVersion, "0.13.0") >= 0
-    }
+    val is13_+ = StringUtil.compareVersionNumbers(sbtVersion(children.head.getProject), "0.13.0") >= 0
 
     children.foreach {
       case _: SbtFileImpl | _: ScImportStmt | _: PsiComment | _: PsiWhiteSpace =>

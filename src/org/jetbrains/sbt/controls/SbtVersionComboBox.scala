@@ -12,6 +12,7 @@ import com.intellij.openapi.util.SystemInfo
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ReflectionUtil
 import com.intellij.util.ui.UIUtil
+import org.jetbrains.sbt.project.settings.SbtSettings
 
 /**
  * @author Nikolay Obedin
@@ -25,7 +26,6 @@ class SbtVersionComboBox extends JComboBox {
 
   setModel(new DefaultComboBoxModel(versions.toArray[Object]))
   setEditable(true)
-  setSelectedItem("")
   setPreferredSize(new Dimension(120, getPreferredSize.height))
 
   setEditor(new FixedComboBoxEditor(){

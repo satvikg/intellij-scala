@@ -17,7 +17,7 @@ import scala.xml.{Elem, XML}
  * @author Pavel Fatin
  */
 class SbtRunner(vmOptions: Seq[String], customLauncher: Option[File], customStructureDir: Option[String],
-                vmExecutable: File) {
+                vmExecutable: File, projectSbtVersion: Option[String]) {
   private val LauncherDir = getSbtLauncherDir
   private val SbtLauncher = customLauncher.getOrElse(LauncherDir / "sbt-launch.jar")
   private val DefaultSbtVersion = "0.13"
@@ -39,17 +39,16 @@ class SbtRunner(vmOptions: Seq[String], customLauncher: Option[File], customStru
   }
 
   private def read0(directory: File, options: String)(listener: (String) => Unit): Either[Exception, Elem] = {
-    val sbtVersion = sbtVersionIn(directory)
+    val sbtVersion = projectSbtVersion
+            .orElse(sbtVersionIn(directory))
             .orElse(implementationVersionOf(SbtLauncher))
             .getOrElse(DefaultSbtVersion)
-
-    val majorSbtVersion = numbersOf(sbtVersion).take(2).mkString(".")
 
     if (compare(sbtVersion, SinceSbtVersion) < 0) {
       val message = s"SBT $SinceSbtVersion+ required. Please update the project definition"
       Left(new UnsupportedOperationException(message))
     } else {
-      read1(directory, majorSbtVersion, options, listener)
+      read1(directory, sbtVersion, options, listener)
     }
   }
 
@@ -61,7 +60,8 @@ class SbtRunner(vmOptions: Seq[String], customLauncher: Option[File], customStru
   private def check(entity: String, file: File) = (!file.exists()).option(s"$entity does not exist: $file")
 
   private def read1(directory: File, sbtVersion: String, options: String, listener: (String) => Unit) = {
-    val pluginFile = customStructureDir.map(new File(_)).getOrElse(LauncherDir) / s"sbt-structure-$sbtVersion.jar"
+    val majorSbtVersion = numbersOf(sbtVersion).take(2).mkString(".")
+    val pluginFile = customStructureDir.map(new File(_)).getOrElse(LauncherDir) / s"sbt-structure-$majorSbtVersion.jar"
 
     val sbtOpts: Seq[String] = {
       val sbtOptsFile = directory / ".sbtopts"
@@ -85,6 +85,7 @@ class SbtRunner(vmOptions: Seq[String], customLauncher: Option[File], customStru
                   "-Djline.terminal=jline.UnsupportedTerminal" +:
                   "-Dsbt.log.noformat=true" +:
                   (vmOptions ++ sbtOpts) :+
+                  s"-Dsbt.version=$sbtVersion" :+
                   "-jar" :+
                   path(SbtLauncher) :+
                   s"< ${path(commandsFile)}"

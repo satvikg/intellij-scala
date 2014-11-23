@@ -116,9 +116,10 @@ object SbtExternalSystemManager {
 
     val resolveClassifiers = projectSettings.fold(settings.resolveClassifiers)(_.resolveClassifiers)
     val resolveSbtClassifiers = projectSettings.fold(settings.resolveSbtClassifiers)(_.resolveSbtClassifiers)
+    val sbtVersion = Option(projectSettings.fold(settings.sbtVersion)(_.sbtVersion))
 
     new SbtExecutionSettings(vmExecutable, vmOptions, customLauncher, customSbtStructureDir, projectJdkName,
-      resolveClassifiers, resolveSbtClassifiers)
+      resolveClassifiers, resolveSbtClassifiers, sbtVersion)
   }
 
   private def proxyOptionsFor(http: HttpConfigurable): Seq[String] = {

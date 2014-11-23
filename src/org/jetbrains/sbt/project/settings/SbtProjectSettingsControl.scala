@@ -79,7 +79,8 @@ class SbtProjectSettingsControl(context: Context, initialSettings: SbtProjectSet
 
     selectedJdkName != settings.jdkName ||
             resolveClassifiersCheckBox.isSelected != settings.resolveClassifiers ||
-            resolveSbtClassifiersCheckBox.isSelected != settings.resolveClassifiers
+            resolveSbtClassifiersCheckBox.isSelected != settings.resolveClassifiers ||
+            sbtVersionComboBox.getEditor.getItem != settings.sbtVersion
   }
 
   protected def resetExtraSettings(isDefaultModuleCreation: Boolean) {
@@ -90,6 +91,7 @@ class SbtProjectSettingsControl(context: Context, initialSettings: SbtProjectSet
 
     resolveClassifiersCheckBox.setSelected(settings.resolveClassifiers)
     resolveSbtClassifiersCheckBox.setSelected(settings.resolveSbtClassifiers)
+    sbtVersionComboBox.getEditor.setItem(settings.sbtVersion)
   }
 
   override def updateInitialExtraSettings() {
@@ -100,6 +102,7 @@ class SbtProjectSettingsControl(context: Context, initialSettings: SbtProjectSet
     settings.jdk = selectedJdkName.orNull
     settings.resolveClassifiers = resolveClassifiersCheckBox.isSelected
     settings.resolveSbtClassifiers = resolveSbtClassifiersCheckBox.isSelected
+    settings.sbtVersion = sbtVersionComboBox.getEditor.getItem.asInstanceOf[String]
   }
 
   private def selectedJdkName = Option(jdkComboBox.getSelectedJdk).map(_.getName)

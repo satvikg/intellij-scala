@@ -79,7 +79,7 @@ class SbtProjectSettingsControl(context: Context, initialSettings: SbtProjectSet
 
     selectedJdkName != settings.jdkName ||
             resolveClassifiersCheckBox.isSelected != settings.resolveClassifiers ||
-            resolveSbtClassifiersCheckBox.isSelected != settings.resolveClassifiers ||
+            resolveSbtClassifiersCheckBox.isSelected != settings.resolveSbtClassifiers ||
             sbtVersionComboBox.getEditor.getItem != settings.sbtVersion
   }
 

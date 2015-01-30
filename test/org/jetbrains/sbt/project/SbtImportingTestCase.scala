@@ -99,8 +99,10 @@ class SbtImportingTestCase extends ExternalSystemImportingTestCase {
       assertContentRootExcludes(module.name, root.path, root.excludes:_*)
     }
     assertSources(module.name, module.sources:_*)
+    assertTestSources(module.name, module.testSources:_*)
     assertGeneratedSources(module.name, module.generatedSources:_*)
     assertResources(module.name, module.resources:_*)
+    assertTestResources(module.name, module.testResources:_*)
     assertExcludes(module.name, module.excludes:_*)
     module.libraryDependencies.foreach(doCheckLibrary(module.name, _))
     module.moduleDependencies.foreach { dep =>

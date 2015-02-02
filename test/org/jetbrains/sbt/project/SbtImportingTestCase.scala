@@ -5,7 +5,10 @@ import java.io.File
 import com.intellij.openapi.externalSystem.model.ProjectSystemId
 import com.intellij.openapi.externalSystem.settings.ExternalProjectSettings
 import com.intellij.openapi.externalSystem.test.ExternalSystemImportingTestCase
+import com.intellij.openapi.projectRoots.JavaSdkType
+import com.intellij.openapi.projectRoots.impl.JavaAwareProjectJdkTableImpl
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.testFramework.IdeaTestUtil
 import org.jetbrains.plugins.scala.codeInspection.internal.AnnotatorBasedErrorInspection
 import org.jetbrains.plugins.scala.util.TestUtils
 import org.jetbrains.sbt.project.settings.SbtProjectSettings
@@ -30,12 +33,11 @@ class SbtImportingTestCase extends ExternalSystemImportingTestCase {
 
   protected def getCurrentExternalProjectSettings: ExternalProjectSettings = {
     val settings = new SbtProjectSettings
-    // TODO: find out why it's complaining about allowed roots violation
-//    val internalSdk = JavaAwareProjectJdkTableImpl.getInstanceEx.getInternalJdk
-//    val sdk = if (internalSdk == null) IdeaTestUtil.getMockJdk17 else internalSdk
-//    val sdkType = sdk.getSdkType.asInstanceOf[JavaSdkType]
-    settings.setJdk("/usr/lib/jvm/java-6-oracle") //sdkType.getVMExecutablePath(sdk))
-    //settings.setCreateEmptyContentRootDirectories(true)
+    // TODO: find out why it is not working on jvm != 7
+    val internalSdk = JavaAwareProjectJdkTableImpl.getInstanceEx.getInternalJdk
+    val sdk = if (internalSdk == null) IdeaTestUtil.getMockJdk17 else internalSdk
+    val sdkType = sdk.getSdkType.asInstanceOf[JavaSdkType]
+    settings.setJdk(sdkType.getVMExecutablePath(sdk))
     settings
   }
 

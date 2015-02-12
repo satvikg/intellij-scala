@@ -22,12 +22,16 @@ libraryDependencies += "org.apache.lucene" % "lucene-core" % "4.4.0" % Compile
 
 libraryDependencies += "org.apache.lucene" % "lucene-highlighter" % "4.4.0" % Compile
 
+libraryDependencies += "org.scalameta" % "scalameta_2.11" % "0.1.0-SNAPSHOT"
+
 libraryDependencies ++= Seq(
   "org.apache.maven.indexer" % "indexer-core" % "5.1.1" % Compile,
   "org.codehaus.plexus" % "plexus-container-default" % "1.5.5" % Compile,
   "org.sonatype.sisu" % "sisu-inject-plexus" % "2.2.3" % Compile,
   "org.apache.maven.wagon" % "wagon-http" % "2.6" % Compile
 )
+
+resolvers in ThisBuild += Resolver.sonatypeRepo("snapshots")
 
 lazy val testDownloader = project.in(file("testJarsDownloader"))
 

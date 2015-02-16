@@ -22,7 +22,7 @@ libraryDependencies += "org.apache.lucene" % "lucene-core" % "4.4.0" % Compile
 
 libraryDependencies += "org.apache.lucene" % "lucene-highlighter" % "4.4.0" % Compile
 
-libraryDependencies += "org.scalameta" % "scalameta_2.11" % "0.1.0-SNAPSHOT"
+libraryDependencies += "org.scalameta" % "scalameta_2.11" % "0.1.0-SNAPSHOT" withSources()
 
 libraryDependencies ++= Seq(
   "org.apache.maven.indexer" % "indexer-core" % "5.1.1" % Compile,
